@@ -218,6 +218,34 @@ jobs:
           def identity(info):
               return (info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,
                       info.st_file_attributes,getattr(info,"st_reparse_tag",0))
+          FIELDS=("st_dev","st_ino","st_mode","st_size","st_mtime_ns","st_file_attributes","st_reparse_tag")
+          METADATA={"cross_api_checks":0,"exe_mode_adjustments":0,"differences":[],"difference_records_truncated":False}
+          def differing(path,left,right,phase):
+              a,b=identity(left),identity(right)
+              fields=[name for name,x,y in zip(FIELDS,a,b) if x!=y]
+              record={"phase":phase,"different_fields":fields,
+                      "left_values":{k:a[FIELDS.index(k)] for k in fields},
+                      "right_values":{k:b[FIELDS.index(k)] for k in fields},
+                      "suffix":".exe" if path.suffix.lower()==".exe" else "OTHER",
+                      "filename_sha256":hashlib.sha256(path.name.encode()).hexdigest()}
+              return fields,record
+          def check_path_handle(path,path_info,handle_info):
+              METADATA["cross_api_checks"]+=1
+              fields,record=differing(path,path_info,handle_info,"PATH_VS_HANDLE")
+              allowed=(fields==["st_mode"] and path.suffix.lower()==".exe" and
+                       stat.S_ISREG(path_info.st_mode) and stat.S_ISREG(handle_info.st_mode) and
+                       handle_info.st_mode&0o111==0 and path_info.st_mode==(handle_info.st_mode|0o111))
+              if fields:
+                  record["documented_exe_mode_adjustment"]=allowed
+                  if len(METADATA["differences"])<4:METADATA["differences"].append(record)
+                  else:METADATA["difference_records_truncated"]=True
+              if fields and not allowed:METADATA["failure_difference"]=record
+              need(not fields or allowed,"TARGET_OPEN_IDENTITY_DRIFT")
+              if allowed:METADATA["exe_mode_adjustments"]+=1
+          def check_handle_stability(path,before,after):
+              fields,record=differing(path,before,after,"HANDLE_BEFORE_VS_AFTER_READ")
+              if fields:METADATA["failure_difference"]=record
+              need(not fields,"TARGET_READ_DRIFT")
           def ordinary(path,directory):
               info=os.lstat(path)
               need(not info.st_file_attributes&0x400 and getattr(info,"st_reparse_tag",0)==0,
@@ -268,14 +296,15 @@ jobs:
                       need(info.st_nlink==1,"TARGET_HARDLINK_REFUSED")
                       total+=info.st_size;need(total<=16*1024*1024,"TARGET_BYTES_BOUND")
                       with path.open("rb") as f:
-                          need(identity(os.fstat(f.fileno()))==identity(info),"TARGET_OPEN_IDENTITY_DRIFT")
+                          opened=os.fstat(f.fileno())
+                          check_path_handle(path,info,opened)
                           digest=hashlib.sha256()
                           while True:
                               block=f.read(65536)
                               if not block:break
-                          need(f.tell()<=info.st_size and time.monotonic()-start<=5,"TARGET_READ_BOUND")
-                          digest.update(block)
-                          need(identity(os.fstat(f.fileno()))==identity(info),"TARGET_READ_DRIFT")
+                              need(f.tell()<=info.st_size and time.monotonic()-start<=5,"TARGET_READ_BOUND")
+                              digest.update(block)
+                          check_handle_stability(path,opened,os.fstat(f.fileno()))
                       record.append(digest.hexdigest())
                   records.append(record)
               return sorted(records)
@@ -311,14 +340,14 @@ jobs:
                       "post_unlink_reparse_count":0,"post_unlink_entries_examined":scanned,
                       "target_snapshot_sha256":{t.name:hashlib.sha256(json.dumps(v,separators=(",",":")).encode()).hexdigest()
                                                 for t,v in after.items()},
-                      "ordinary_disposable_root_teardown_follows":True}
+                      "ordinary_disposable_root_teardown_follows":True,"metadata_comparison":METADATA}
           if __name__=="__main__":
               try:
                   need(len(sys.argv)==2,"FIXED_ROOT_ARGUMENT_REQUIRED")
                   print(json.dumps(cleanup(Path(sys.argv[1])),sort_keys=True))
               except BaseException as error:
                   reason=str(error) if isinstance(error,RuntimeError) and re.fullmatch("[A-Z0-9_]+",str(error)) else "BOUNDED_LINK_CLEANUP_EXCEPTION"
-                  print(json.dumps({"fixture_link_cleanup":"FAIL_OR_BLOCKED","reason":reason,"error_type":type(error).__name__,**PROGRESS}))
+                  print(json.dumps({"fixture_link_cleanup":"FAIL_OR_BLOCKED","reason":reason,"error_type":type(error).__name__,**PROGRESS,"metadata_comparison":METADATA}))
                   sys.exit(2)
           '@
             $unlinkOut=Run-Captured $python @('-I','-B','-S','-X','utf8','-c',$cleanupCode,$resolved) 30 'PYTEST_LINK_CLEANUP'
