@@ -62,7 +62,7 @@ jobs:
               [IO.File]::WriteAllText((Join-Path $root ($label+'.stdout.log')),$out)
               [IO.File]::WriteAllText((Join-Path $root ($label+'.stderr.log')),$err)
               if($process.ExitCode -ne 0){
-                if($label -ceq 'COORDINATOR' -and $out.Length -le 100000){Write-Host $out}
+                if($label -in @('COORDINATOR','PYTEST_LINK_CLEANUP') -and $out.Length -le 100000){Write-Host $out}
                 [ordered]@{setup_stage=$label;exit_code=$process.ExitCode;stdout_characters=$out.Length;stderr_characters=$err.Length}|ConvertTo-Json -Compress|Write-Host
                 throw ('OWNED_PROCESS_FAILED_'+$label)
               }
@@ -154,7 +154,7 @@ jobs:
             $resolved=[IO.Path]::GetFullPath($root)
             if($resolved -notmatch '^C:\\LocalControlRegressionMcp-[a-f0-9]{32}$'){throw 'CLEANUP_SCOPE_REFUSED'}
             # Enumerate metadata only, never descend into a reparse directory.
-            # Diagnostics do not authorize removing or following any link.
+            # Only the exact four pytest links may be removed after a passing coordinator.
             $pending=[Collections.Generic.Queue[string]]::new()
             $rootItem=Get-Item -LiteralPath $resolved -Force
             if(($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'CLEANUP_ROOT_REPARSE_REFUSED'}
@@ -199,9 +199,136 @@ jobs:
             }
             [ordered]@{cleanup_inventory_complete=$complete;entries_examined=$entryCount;directories_examined=$directoryCount;
               reparse_count=$linkCount;reparse_entries=@($links.ToArray());reparse_entries_truncated=($linkCount -gt 16);
-              link_targets_followed=$false;link_deletion_authorized=$false}|ConvertTo-Json -Depth 6 -Compress
+              link_targets_followed=$false;general_link_deletion_authorized=$false}|ConvertTo-Json -Depth 6 -Compress
             if(-not $complete){throw 'CLEANUP_INVENTORY_BOUND_REFUSED'}
-            if($linkCount -gt 0){throw 'CLEANUP_REPARSE_REFUSED'}
+            if($linkCount -ne 4 -or $failed){throw 'CLEANUP_REPARSE_REFUSED'}
+            # Only the four observed pytest-owned links, after a passing coordinator.
+            $cleanupCode=@'
+          import hashlib,json,os,re,stat,sys,time
+          from pathlib import Path
+          PROGRESS={"stage":"INITIALIZE","unlink_calls_returned":0}
+          def need(value,reason):
+              if not value:raise RuntimeError(reason)
+          PAIRS={
+           "test_cancellation_during_startcurrent":"test_cancellation_during_start0",
+           "test_upstream_contract_mismatccurrent":"test_upstream_contract_mismatc0",
+           "test_upstream_initialize_timeocurrent":"test_upstream_initialize_timeo0",
+           "test_upstream_startup_retry_bucurrent":"test_upstream_startup_retry_bu0",
+          }
+          def identity(info):
+              return (info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,
+                      info.st_file_attributes,getattr(info,"st_reparse_tag",0))
+          def ordinary(path,directory):
+              info=os.lstat(path)
+              need(not info.st_file_attributes&0x400 and getattr(info,"st_reparse_tag",0)==0,
+                   "TARGET_OR_PARENT_REPARSE_REFUSED")
+              need(stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode),
+                   "ORDINARY_NODE_TYPE_REQUIRED")
+              need(info.st_ino!=0,"NATIVE_FILE_ID_REQUIRED")
+              return info
+          def link_identity(path,target):
+              info=os.lstat(path)
+              need(stat.S_ISLNK(info.st_mode) and info.st_file_attributes==1040 and
+                   info.st_reparse_tag==0xA000000C,"EXACT_DIRECTORY_SYMLINK_REQUIRED")
+              raw=os.readlink(path)
+              if raw.startswith("\\\\?\\"):raw=raw[4:]
+              need(os.path.isabs(raw) and os.path.normcase(raw)==
+                   os.path.normcase(str(target)),"EXACT_LINK_TARGET_REQUIRED")
+              return identity(info)
+          def scan(root,expected):
+              start=time.monotonic();pending=[root];found=set();entries=dirs=0
+              while pending:
+                  directory=pending.pop();ordinary(directory,True);dirs+=1
+                  need(dirs<=4096,"SCAN_DIRECTORY_BOUND")
+                  with os.scandir(directory) as stream:
+                      for item in stream:
+                          entries+=1
+                          need(entries<=16384 and time.monotonic()-start<=10,"SCAN_ENTRY_OR_TIME_BOUND")
+                          p=Path(item.path);info=os.lstat(p)
+                          if info.st_file_attributes&0x400:
+                              need(p in expected,"UNKNOWN_REPARSE_REFUSED");found.add(p)
+                          elif stat.S_ISDIR(info.st_mode):pending.append(p)
+                          else:need(stat.S_ISREG(info.st_mode),"UNKNOWN_NODE_REFUSED")
+              need(found==set(expected),"EXACT_REPARSE_SET_REQUIRED")
+              return entries
+          def snapshot(target):
+              start=time.monotonic();pending=[target];records=[];total=0
+              while pending:
+                  path=pending.pop()
+                  need(len(records)<512 and time.monotonic()-start<=5,"TARGET_SNAPSHOT_BOUND")
+                  info=os.lstat(path);directory=stat.S_ISDIR(info.st_mode)
+                  ordinary(path,directory)
+                  record=[path.relative_to(target).as_posix(),identity(info)]
+                  if directory:
+                      with os.scandir(path) as stream:
+                          children=[Path(x.path) for x in stream]
+                      need(len(children)<=512,"TARGET_CHILD_BOUND")
+                      pending.extend(children)
+                  else:
+                      need(info.st_nlink==1,"TARGET_HARDLINK_REFUSED")
+                      total+=info.st_size;need(total<=16*1024*1024,"TARGET_BYTES_BOUND")
+                      with path.open("rb") as f:
+                          need(identity(os.fstat(f.fileno()))==identity(info),"TARGET_OPEN_IDENTITY_DRIFT")
+                          digest=hashlib.sha256()
+                          while True:
+                              block=f.read(65536)
+                              if not block:break
+                          need(f.tell()<=info.st_size and time.monotonic()-start<=5,"TARGET_READ_BOUND")
+                          digest.update(block)
+                          need(identity(os.fstat(f.fileno()))==identity(info),"TARGET_READ_DRIFT")
+                      record.append(digest.hexdigest())
+                  records.append(record)
+              return sorted(records)
+          def cleanup(root):
+              need(os.name=="nt" and sys.version_info[:3]==(3,12,10),"FIXED_WINDOWS_PYTHON_REQUIRED")
+              need(re.fullmatch(r"C:\\LocalControlRegressionMcp-[a-f0-9]{32}",str(root)) is not None,
+                   "FIXED_DISPOSABLE_ROOT_REQUIRED")
+              parent=root/"regression-temp"
+              root_id=identity(ordinary(root,True));parent_id=identity(ordinary(parent,True))
+              expected={parent/link:parent/target for link,target in PAIRS.items()}
+              PROGRESS["stage"]="VERIFY_EXACT_LINK_SET"
+              scan(root,expected)
+              links={p:link_identity(p,t) for p,t in expected.items()}
+              PROGRESS["stage"]="SNAPSHOT_ALL_TARGETS"
+              before={t:snapshot(t) for t in expected.values()}
+              for path,target in expected.items():
+                  # The successful coordinator has already stopped/proved all owned Jobs.
+                  # Root/parent directory identity is checked again before each unlink.
+                  now=identity(ordinary(root,True));up=identity(ordinary(parent,True))
+                  need(now[:2]==root_id[:2] and up[:2]==parent_id[:2],"PARENT_IDENTITY_DRIFT")
+                  need(link_identity(path,target)==links[path],"LINK_IDENTITY_DRIFT")
+                  PROGRESS["stage"]="UNLINK_VERIFIED_OBJECT"
+                  os.unlink(path)  # Windows directory-symlink branch removes the link object only.
+                  PROGRESS["unlink_calls_returned"]+=1
+                  need(not os.path.lexists(path),"LINK_STILL_PRESENT")
+                  need(snapshot(target)==before[target],"TARGET_CHANGED_DURING_UNLINK")
+              PROGRESS["stage"]="VERIFY_ALL_TARGETS_AND_RESCAN"
+              after={t:snapshot(t) for t in expected.values()}
+              need(before==after,"TARGET_SET_CHANGED_DURING_UNLINK")
+              scanned=scan(root,{})
+              return {"fixture_link_cleanup":"PASS","exact_links_removed":4,
+                      "target_identity_metadata_and_content_unchanged_during_unlink":True,
+                      "post_unlink_reparse_count":0,"post_unlink_entries_examined":scanned,
+                      "target_snapshot_sha256":{t.name:hashlib.sha256(json.dumps(v,separators=(",",":")).encode()).hexdigest()
+                                                for t,v in after.items()},
+                      "ordinary_disposable_root_teardown_follows":True}
+          if __name__=="__main__":
+              try:
+                  need(len(sys.argv)==2,"FIXED_ROOT_ARGUMENT_REQUIRED")
+                  print(json.dumps(cleanup(Path(sys.argv[1])),sort_keys=True))
+              except BaseException as error:
+                  reason=str(error) if isinstance(error,RuntimeError) and re.fullmatch("[A-Z0-9_]+",str(error)) else "BOUNDED_LINK_CLEANUP_EXCEPTION"
+                  print(json.dumps({"fixture_link_cleanup":"FAIL_OR_BLOCKED","reason":reason,"error_type":type(error).__name__,**PROGRESS}))
+                  sys.exit(2)
+          '@
+            $unlinkOut=Run-Captured $python @('-I','-B','-S','-X','utf8','-c',$cleanupCode,$resolved) 30 'PYTEST_LINK_CLEANUP'
+            if($unlinkOut.Length -gt 10000){throw 'LINK_CLEANUP_OUTPUT_BOUND'}
+            $unlinkOut
+            $unlinkReceipt=$unlinkOut.Trim() | ConvertFrom-Json
+            if($unlinkReceipt.fixture_link_cleanup -cne 'PASS' -or $unlinkReceipt.exact_links_removed -ne 4 -or
+               $unlinkReceipt.target_identity_metadata_and_content_unchanged_during_unlink -ne $true -or
+               $unlinkReceipt.post_unlink_reparse_count -ne 0){throw 'EXACT_PYTEST_LINK_CLEANUP_FAILED'}
+            # Targets were preserved by unlink; now dispose of the owned test root.
             [IO.Directory]::Delete($resolved,$true)
             Write-Output '{"runner_fixture_cleanup":"PASS"}'
           }
