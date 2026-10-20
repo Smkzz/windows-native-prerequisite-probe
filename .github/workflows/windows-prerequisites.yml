@@ -1,0 +1,100 @@
+name: Windows native prerequisite probe
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: windows-prerequisite-probe
+  cancel-in-progress: false
+jobs:
+  readiness:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Probe disposable runner only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $receipt = [ordered]@{
+            schema='windows-native-prerequisite-probe/v1'
+            purpose='Environment readiness only; no application source or pilot'
+            utc=[DateTime]::UtcNow.ToString('o')
+            os=[Runtime.InteropServices.RuntimeInformation]::OSDescription
+            process_x64=[Environment]::Is64BitProcess
+            ps_version=$PSVersionTable.PSVersion.ToString()
+            checks=[ordered]@{}
+          }
+          $fixture=$null
+          $probeFile=$null
+          $profileCreated=$false
+          $job=[IntPtr]::Zero
+          $sid=[IntPtr]::Zero
+          $failed=$false
+          try {
+            if($env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows'){throw 'STANDARD_HOSTED_WINDOWS_RUNNER_REQUIRED'}
+            if(-not [Environment]::Is64BitProcess){throw 'X64_PROCESS_REQUIRED'}
+            Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class NativeProbe {
+           [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+           public static extern IntPtr CreateJobObject(IntPtr attributes, string name);
+           [DllImport("kernel32.dll", SetLastError=true)]
+           public static extern bool CloseHandle(IntPtr handle);
+           [DllImport("userenv.dll", CharSet=CharSet.Unicode)]
+           public static extern int CreateAppContainerProfile(string name, string displayName, string description, IntPtr capabilities, uint count, out IntPtr sid);
+           [DllImport("userenv.dll", CharSet=CharSet.Unicode)]
+           public static extern int DeleteAppContainerProfile(string name);
+           [DllImport("advapi32.dll")]
+           public static extern IntPtr FreeSid(IntPtr sid);
+          }
+          '@
+            $root=Get-Item -LiteralPath 'C:\' -Force
+            $receipt.checks.c_root_metadata=($root.PSIsContainer -and $root.FullName -eq 'C:\')
+            if(-not $receipt.checks.c_root_metadata){throw 'C_ROOT_METADATA_UNAVAILABLE'}
+            $parent=Get-Item -LiteralPath ([Environment]::GetFolderPath('LocalApplicationData')) -Force
+            if($parent.FullName -notmatch '^C:\\'){throw 'GUEST_LOCAL_C_TEMP_REQUIRED'}
+            $cursor=$parent
+            while($null -ne $cursor){
+              if(($cursor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'REPARSE_TEMP_REFUSED'}
+              $cursor=$cursor.Parent
+            }
+            $fixture=Join-Path $parent.FullName ('native-readiness-'+[Guid]::NewGuid().ToString('N'))
+            $null=[IO.Directory]::CreateDirectory($fixture)
+            $probeFile=Join-Path $fixture 'probe.txt'
+            $data=[Text.Encoding]::UTF8.GetBytes('disposable-native-prerequisite-probe')
+            $f=[IO.File]::Open($probeFile,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+            try{$f.Write($data,0,$data.Length);$f.Flush($true)}finally{$f.Dispose()}
+            $receipt.checks.synthetic_c_write_read=([IO.File]::ReadAllText($probeFile) -ceq 'disposable-native-prerequisite-probe')
+            if(-not $receipt.checks.synthetic_c_write_read){throw 'FIXTURE_READBACK_FAILED'}
+            $job=[NativeProbe]::CreateJobObject([IntPtr]::Zero,$null)
+            $receipt.checks.job_handle_create=($job -ne [IntPtr]::Zero)
+            if(-not $receipt.checks.job_handle_create){throw 'CREATE_JOB_OBJECT_FAILED'}
+            $profile='NativeReadiness.'+[Guid]::NewGuid().ToString('N')
+            $hr=[NativeProbe]::CreateAppContainerProfile($profile,$profile,'Disposable prerequisite probe',[IntPtr]::Zero,0,[ref]$sid)
+            $receipt.checks.appcontainer_profile_hresult=$hr
+            $profileCreated=($hr -eq 0)
+            if(-not $profileCreated -or $sid -eq [IntPtr]::Zero){throw 'CREATE_APPCONTAINER_PROFILE_FAILED'}
+            $receipt.checks.appcontainer_profile_create=$true
+            $receipt.result='PREREQUISITE_CAPABILITIES_OBSERVED_NOT_QUALIFICATION'
+          } catch {
+            $failed=$true
+            $receipt.result='PREREQUISITE_PROBE_BLOCKED'
+            $receipt.error_type=$_.Exception.GetType().FullName
+            $receipt.error_code=if($_.Exception.Message -cmatch '^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'NATIVE_PREREQUISITE_FAILED'}
+          } finally {
+            $cleanup=[ordered]@{}
+            if($job -ne [IntPtr]::Zero){$cleanup.job_closed=[NativeProbe]::CloseHandle($job);if(-not $cleanup.job_closed){$failed=$true}}
+            if($sid -ne [IntPtr]::Zero){$cleanup.sid_freed=([NativeProbe]::FreeSid($sid) -eq [IntPtr]::Zero);if(-not $cleanup.sid_freed){$failed=$true}}
+            if($profileCreated){$cleanup.profile_delete_hresult=[NativeProbe]::DeleteAppContainerProfile($profile);if($cleanup.profile_delete_hresult -ne 0){$failed=$true}}
+            if($probeFile -and [IO.File]::Exists($probeFile)){[IO.File]::Delete($probeFile)}
+            if($fixture -and [IO.Directory]::Exists($fixture)){[IO.Directory]::Delete($fixture,$false)}
+            $receipt.cleanup=$cleanup
+            if($failed){$receipt.result='PREREQUISITE_PROBE_BLOCKED'}
+            $receipt.not_proven=@('AppContainer process launch/access denial','Job assignment/descendant cleanup/crash recovery','Python/pytest/mcp closure','application repair correctness','production rollback or activation')
+            $json=$receipt|ConvertTo-Json -Depth 6
+            $json
+            if($env:GITHUB_STEP_SUMMARY){[IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY,('# Windows native prerequisite probe'+[Environment]::NewLine+$json+[Environment]::NewLine))}
+          }
+          if($failed){exit 1}
+          
+
