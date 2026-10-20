@@ -183,6 +183,48 @@ def creation_time(api, handle):
     api.check(api.get_times(handle, c.byref(created), c.byref(exited), c.byref(kernel), c.byref(user)))
     return (created.dwHighDateTime << 32) | created.dwLowDateTime
 
+def owned_job_inventory(api, job, expected_owner_pid):
+    """Query at most four members of this exact synthetic Job; never enumerate host processes."""
+    capacity = 4
+    buf = c.create_string_buffer(8 + capacity * c.sizeof(c.c_size_t))
+    api.check(job.k.QueryInformationJobObject(job.handle, 3, buf, c.sizeof(buf), None))
+    assigned = w.DWORD.from_buffer(buf, 0).value
+    count = w.DWORD.from_buffer(buf, 4).value
+    need(count <= capacity and assigned <= capacity, "OWNED_JOB_INVENTORY_BOUND")
+    api.k.OpenProcess.argtypes = [w.DWORD, w.BOOL, w.DWORD]
+    api.k.OpenProcess.restype = w.HANDLE
+    api.k.QueryFullProcessImageNameW.argtypes = [
+        w.HANDLE, w.DWORD, w.LPWSTR, c.POINTER(w.DWORD)]
+    api.k.QueryFullProcessImageNameW.restype = w.BOOL
+    records = []
+    for index in range(count):
+        pid = c.c_size_t.from_buffer(buf, 8 + index*c.sizeof(c.c_size_t)).value
+        handle = api.k.OpenProcess(0x1000, False, pid)  # query only
+        if not handle:
+            records.append({"expected_owner": pid == expected_owner_pid, "query": "UNAVAILABLE"})
+            continue
+        try:
+            inside = w.BOOL()
+            api.check(api.is_in_job(handle, job.handle, c.byref(inside)))
+            if not inside.value:
+                records.append({"expected_owner": pid == expected_owner_pid, "query": "LEFT_OWNED_JOB"})
+                continue
+            length = w.DWORD(32768)
+            image = c.create_unicode_buffer(length.value)
+            api.check(api.k.QueryFullProcessImageNameW(handle, 0, image, c.byref(length)))
+            name = Path(image.value).name.casefold()
+            allowed = {"python.exe", "pythonw.exe", "conhost.exe", "genericboundaryprobe.exe"}
+            records.append({"expected_owner": pid == expected_owner_pid,
+                            "image": name if name in allowed else "OTHER_OWNED_IMAGE"})
+        finally:
+            api.check(api.close(handle))
+    return {"assigned": assigned, "listed": count, "members": records}
+
+def accounting_diagnostic(stats):
+    return {key: stats.get(key) for key in (
+        "accounting_available", "active_processes", "total_processes",
+        "terminated_processes", "job_tree_event_counts", "job_tree_limit_events")}
+
 def verify_token(api, process, expected_sid):
     token = w.HANDLE()
     api.check(api.open_token(process, 8, c.byref(token)))
@@ -308,6 +350,11 @@ def one_case(root, phase, owner_sid):
         cp = wait_checkpoint(case / "controller" / "checkpoint.json", owner_api, pi.hProcess,
                              case / "controller" / "owner_error.json")
         need(cp["phase"] == phase, "CHECKPOINT_PHASE_MISMATCH")
+        dump({"case": phase, "stage": "PRECRASH_OWNED_JOB_DIAGNOSTIC",
+              "checkpoint_process_created": cp["process_created"],
+              "checkpoint_command_released": cp["command_released"],
+              "accounting": accounting_diagnostic(outer.stats()),
+              "owned_members": owned_job_inventory(owner_api, outer, pi.dwProcessId)})
         CONTEXT.update(stage="OBSERVE_EXACT_NATIVE_WORKERS")
         if phase != "starting":
             owner_api.k.OpenProcess.argtypes = [w.DWORD, w.BOOL, w.DWORD]
@@ -352,10 +399,14 @@ def one_case(root, phase, owner_sid):
         for handle in handles:
             need(owner_api.wait(handle, 5000) == 0, "OWNED_TREE_SURVIVED_OWNER_DEATH")
         # No outer TerminateJobObject has been called before these witnesses.
-        need(outer.prove_empty(timeout=2), "OUTER_TREE_NOT_EMPTY_AFTER_OWNER_DEATH")
+        tree_empty = outer.prove_empty(timeout=2)
         stats = outer.stats()
+        dump({"case": phase, "stage": "POSTCRASH_OWNED_JOB_DIAGNOSTIC",
+              "native_tree_empty": tree_empty, "accounting": accounting_diagnostic(stats)})
+        need(tree_empty, "OUTER_TREE_NOT_EMPTY_AFTER_OWNER_DEATH")
+        need(stats.get("accounting_available") is True, "POSTCRASH_ACCOUNTING_UNAVAILABLE")
         if phase == "starting":
-            need(stats["total_processes"] == 1, "PRECREATE_CHECKPOINT_CREATED_A_WORKER")
+            need(stats["total_processes"] == 1, "PRECREATE_PROCESS_COUNT_MISMATCH")
         cleanup_ms = round((time.monotonic() - trigger)*1000, 3)
         result = recovery_checks(case, phase, cp["job_id"])
         result.update(passed=True, durable_crash_phase=phase, owner_forcibly_terminated_by_handle=True,

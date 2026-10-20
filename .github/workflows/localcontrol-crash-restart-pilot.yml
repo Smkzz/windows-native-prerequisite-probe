@@ -25,7 +25,7 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/RESTART_SOURCE_MANIFEST.json') -OutFile $manifestPath
-            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne '4c5cba17fac738db5b044bd1589d6133f40e285a89d71c90f6b8636ab1cb331b'){throw 'MANIFEST_HASH_MISMATCH'}
+            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne '3356f640b70ef028094b3f6ff5d5f467a3c636bb7de8607fc3f70fabaf132a48'){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or $manifest.files.Count -ne 13){throw 'SOURCE_MANIFEST_DRIFT'}
             $sourceRoot=Join-Path $root 'source'
@@ -54,7 +54,7 @@ jobs:
             & $compiler /nologo /target:exe /platform:x64 /reference:System.Web.Extensions.dll /out:$compiled (Join-Path $sourceRoot 'GenericBoundaryProbe.cs')
             if($LASTEXITCODE -ne 0){throw 'GENERIC_HELPER_COMPILATION_FAILED'}
             [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
-                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='4c5cba17fac738db5b044bd1589d6133f40e285a89d71c90f6b8636ab1cb331b';
+                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='3356f640b70ef028094b3f6ff5d5f467a3c636bb7de8607fc3f70fabaf132a48';
                 python_sha256=(Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash.ToLowerInvariant();
                 compiler_sha256=(Get-FileHash -LiteralPath $compiler -Algorithm SHA256).Hash.ToLowerInvariant();
                 os_build=[Environment]::OSVersion.Version.ToString();image_version=$env:ImageVersion;
@@ -104,6 +104,4 @@ jobs:
             Write-Output '{"runner_fixture_cleanup":"PASS"}'
           }
           if($failed){exit 1}
-          
-
 

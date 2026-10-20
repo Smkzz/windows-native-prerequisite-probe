@@ -67,8 +67,8 @@
     },
     {
       "path": "pilot-source/restart_pilot.py",
-      "bytes": 22510,
-      "sha256": "22eae1acf81aeac356bb61035406c6f78a95cec0cda5b2c058cc8bcd5a037c36"
+      "bytes": 25397,
+      "sha256": "f3e99e0a6490a9adf3b9a8adc9081e722dc1b8b471ad88c1343a4d2fbe1a4c0b"
     }
   ]
 }
