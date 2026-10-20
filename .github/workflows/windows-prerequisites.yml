@@ -115,7 +115,9 @@ jobs:
             try {
              uint flags=0x08000000|0x4|0x400;
              string system=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-             string environment="PATH="+system+"\\System32\0SystemRoot="+system+"\0TEMP="+Path.GetDirectoryName(Exe)+"\\out\0WINDIR="+system+"\0\0";
+             string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+             Need(!String.IsNullOrEmpty(local) && Directory.Exists(local),"LOADED_LOCALAPPDATA_REQUIRED");
+             string environment="LOCALAPPDATA="+local+"\0PATH="+system+"\\System32\0SystemRoot="+system+"\0TEMP="+Path.GetDirectoryName(Exe)+"\\out\0WINDIR="+system+"\0\0";
              envmem=Marshal.StringToHGlobalUni(environment);
              if(containerSid!=IntPtr.Zero) {
               IntPtr bytes=IntPtr.Zero; InitializeProcThreadAttributeList(IntPtr.Zero,1,0,ref bytes);
@@ -226,6 +228,7 @@ jobs:
            }
            static void AtomicWitness(string path,string text) { File.WriteAllText(path+".tmp",text); File.Move(path+".tmp",path); }
            static Dictionary<string,object> JobTreeTest(string root) {
+            Stopwatch elapsed=Stopwatch.StartNew();
             IntPtr job=Job(),duplicate=IntPtr.Zero,leaf=IntPtr.Zero; Proc parent=new Proc(); bool leafOwned=false;
             try {
              string file=Path.Combine(root,"tree.txt");
@@ -238,9 +241,11 @@ jobs:
              Check(CloseHandle(job),"CLOSE_NONFINAL_HANDLE"); job=IntPtr.Zero;
              Thread.Sleep(200);
              Need(WaitForSingleObject(parent.process,0)==258 && WaitForSingleObject(leaf,0)==258,"NONFINAL_CLOSE_KILLED_TREE");
+             Need(elapsed.ElapsedMilliseconds<20000,"TREE_TRIGGER_TOO_LATE");
+             long trigger=elapsed.ElapsedMilliseconds;
              Check(CloseHandle(duplicate),"CLOSE_FINAL_HANDLE"); duplicate=IntPtr.Zero;
              Need(WaitForSingleObject(parent.process,5000)==0 && WaitForSingleObject(leaf,5000)==0,"FINAL_CLOSE_DID_NOT_CLEAN_TREE");
-             return new Dictionary<string,object>{{"child_exact_job",true},{"descendant_exact_job",true},{"survived_nonfinal_handle_close",true},{"parent_exited_after_final_close",true},{"descendant_exited_after_final_close",true},{"passed",true}};
+             return new Dictionary<string,object>{{"trigger_elapsed_ms",trigger},{"completion_elapsed_ms",elapsed.ElapsedMilliseconds},{"natural_expiry_ms",30000},{"child_exact_job",true},{"descendant_exact_job",true},{"survived_nonfinal_handle_close",true},{"parent_exited_after_final_close",true},{"descendant_exited_after_final_close",true},{"passed",true}};
             } finally {
              if(job!=IntPtr.Zero) { TerminateJobObject(job,93); CloseHandle(job); }
              if(duplicate!=IntPtr.Zero) { TerminateJobObject(duplicate,93); CloseHandle(duplicate); }
@@ -262,6 +267,7 @@ jobs:
             } finally { CloseHandle(j); DisposeProc(ref p); }
            }
            static Dictionary<string,object> OwnerDeathTest(string root) {
+            Stopwatch elapsed=Stopwatch.StartNew();
             Proc owner=new Proc(); IntPtr leaf=IntPtr.Zero,borrowed=IntPtr.Zero; bool leafOwned=false;
             try {
              string file=Path.Combine(root,"owner.txt");
@@ -273,9 +279,11 @@ jobs:
              bool inside; Check(IsProcessInJob(leaf,borrowed,out inside),"OWNER_LEAF_MEMBERSHIP"); Need(inside,"OWNER_LEAF_WRONG_JOB"); leafOwned=true;
              Check(CloseHandle(borrowed),"CLOSE_BORROWED_HANDLE"); borrowed=IntPtr.Zero;
              Need(WaitForSingleObject(leaf,0)==258,"OWNER_LEAF_NOT_ALIVE");
+             Need(elapsed.ElapsedMilliseconds<20000,"OWNER_TRIGGER_TOO_LATE");
+             long trigger=elapsed.ElapsedMilliseconds;
              Check(TerminateProcess(owner.process,97),"TERMINATE_OWNED_OWNER");
              Need(WaitForSingleObject(owner.process,5000)==0 && WaitForSingleObject(leaf,5000)==0,"OWNER_DEATH_DID_NOT_CLEAN_LEAF");
-             return new Dictionary<string,object>{{"leaf_exact_owner_job",true},{"borrowed_handle_closed_before_owner_death",true},{"owner_forcibly_terminated",true},{"leaf_exited_after_owner_death",true},{"passed",true}};
+             return new Dictionary<string,object>{{"trigger_elapsed_ms",trigger},{"completion_elapsed_ms",elapsed.ElapsedMilliseconds},{"natural_expiry_ms",30000},{"leaf_exact_owner_job",true},{"borrowed_handle_closed_before_owner_death",true},{"owner_forcibly_terminated",true},{"leaf_exited_after_owner_death",true},{"passed",true}};
             } finally {
              if(borrowed!=IntPtr.Zero) CloseHandle(borrowed);
              DisposeProc(ref owner);
@@ -294,11 +302,21 @@ jobs:
              Dictionary<string,object> r=new Dictionary<string,object>{{"schema","generic-windows-boundary-probe/v2"},{"os_version_compatibility_report",Environment.OSVersion.Version.ToString()},{"x64",Environment.Is64BitProcess},{"native_pilot_executed",false}};
              try {
               Need(Environment.Is64BitProcess,"X64_REQUIRED");
-              r["appcontainer_access_denial"]=AppTest(root);
-              r["job_last_handle_and_descendant_cleanup"]=JobTreeTest(root);
-              r["job_cleanup_after_owner_termination"]=OwnerDeathTest(root);
-              r["result"]="GENERIC_BOUNDARY_TESTS_PASSED_NOT_APPLICATION_QUALIFICATION";
-              Console.WriteLine(Serialize(r)); return 0;
+              bool pass=true;
+              string[] names={"appcontainer_access_denial","job_last_handle_and_descendant_cleanup","job_cleanup_after_owner_termination"};
+              Func<string,Dictionary<string,object>>[] tests={AppTest,JobTreeTest,OwnerDeathTest};
+              for(int i=0;i<tests.Length;i++) {
+               Context=new Dictionary<string,object>();
+               try { r[names[i]]=tests[i](root); }
+               catch(Exception e) {
+                pass=false;
+                Dictionary<string,object> failure=new Dictionary<string,object>{{"passed",false},{"error_type",e.GetType().Name},{"error",e.Message},{"context",Context}};
+                if(e is Win32Exception) failure["win32_error"]=((Win32Exception)e).NativeErrorCode;
+                r[names[i]]=failure;
+               }
+              }
+              r["result"]=pass?"GENERIC_BOUNDARY_TESTS_PASSED_NOT_APPLICATION_QUALIFICATION":"GENERIC_BOUNDARY_TESTS_FAILED";
+              Console.WriteLine(Serialize(r)); return pass?0:2;
              } catch(Exception e) {
               r["result"]="GENERIC_BOUNDARY_TESTS_FAILED"; r["error_type"]=e.GetType().Name; r["error"]=e.Message; r["context"]=Context; if(e is Win32Exception) r["win32_error"]=((Win32Exception)e).NativeErrorCode;
               Console.WriteLine(Serialize(r)); return 2;
