@@ -25,7 +25,7 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/RESTART_SOURCE_MANIFEST.json') -OutFile $manifestPath
-            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne '3356f640b70ef028094b3f6ff5d5f467a3c636bb7de8607fc3f70fabaf132a48'){throw 'MANIFEST_HASH_MISMATCH'}
+            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'ed203250a676d999fdefaea9dd8b48e25d25c0473347513ee8b0309f07bc4d39'){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or $manifest.files.Count -ne 13){throw 'SOURCE_MANIFEST_DRIFT'}
             $sourceRoot=Join-Path $root 'source'
@@ -54,11 +54,28 @@ jobs:
             & $compiler /nologo /target:exe /platform:x64 /reference:System.Web.Extensions.dll /out:$compiled (Join-Path $sourceRoot 'GenericBoundaryProbe.cs')
             if($LASTEXITCODE -ne 0){throw 'GENERIC_HELPER_COMPILATION_FAILED'}
             [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
-                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='3356f640b70ef028094b3f6ff5d5f467a3c636bb7de8607fc3f70fabaf132a48';
+                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='ed203250a676d999fdefaea9dd8b48e25d25c0473347513ee8b0309f07bc4d39';
                 python_sha256=(Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash.ToLowerInvariant();
                 compiler_sha256=(Get-FileHash -LiteralPath $compiler -Algorithm SHA256).Hash.ToLowerInvariant();
                 os_build=[Environment]::OSVersion.Version.ToString();image_version=$env:ImageVersion;
                 full_release_qualification=$false;production_activation_authorized=$false} | ConvertTo-Json -Compress
+            # Fixed installed OS binary only; verify before any crash-case clock starts.
+            $conhost=[IO.Path]::GetFullPath((Join-Path $env:SystemRoot 'System32\conhost.exe'))
+            $cursor=Get-Item -LiteralPath $conhost -Force
+            if($cursor.PSIsContainer){throw 'SYSTEM_CONSOLE_FILE_REQUIRED'}
+            while($null -ne $cursor) {
+              if(($cursor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'SYSTEM_CONSOLE_REPARSE_REFUSED'}
+              if($cursor -is [IO.FileInfo]){$cursor=$cursor.Directory}else{$cursor=$cursor.Parent}
+            }
+            $signature=Get-AuthenticodeSignature -LiteralPath $conhost
+            if($signature.Status.ToString() -cne 'Valid' -or $null -eq $signature.SignerCertificate){throw 'SYSTEM_CONSOLE_SIGNATURE_REQUIRED'}
+            $microsoft=$signature.SignerCertificate.Subject -match '(?:^|,\s*)O=Microsoft Corporation(?:,|$)'
+            if(-not $microsoft){throw 'SYSTEM_CONSOLE_MICROSOFT_SIGNER_REQUIRED'}
+            $consoleBaseline=[ordered]@{schema='owned-test-system-console/v1';path=$conhost;
+              sha256=(Get-FileHash -LiteralPath $conhost -Algorithm SHA256).Hash.ToLowerInvariant();
+              signature_status='Valid';microsoft_signer=$true;signer_thumbprint=$signature.SignerCertificate.Thumbprint}
+            $consoleBaseline | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $root 'OS_CONHOST_BASELINE.json') -Encoding utf8
+            $consoleBaseline | ConvertTo-Json -Compress
             $psi=[Diagnostics.ProcessStartInfo]::new()
             $psi.FileName=$python
             $psi.UseShellExecute=$false
@@ -104,4 +121,3 @@ jobs:
             Write-Output '{"runner_fixture_cleanup":"PASS"}'
           }
           if($failed){exit 1}
-

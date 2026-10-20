@@ -183,9 +183,9 @@ def creation_time(api, handle):
     api.check(api.get_times(handle, c.byref(created), c.byref(exited), c.byref(kernel), c.byref(user)))
     return (created.dwHighDateTime << 32) | created.dwLowDateTime
 
-def owned_job_inventory(api, job, expected_owner_pid):
-    """Query at most four members of this exact synthetic Job; never enumerate host processes."""
-    capacity = 4
+def owned_job_inventory(api, job, expected_owner_pid, baseline):
+    """Query at most six members of this exact synthetic Job; never enumerate host processes."""
+    capacity = 6
     buf = c.create_string_buffer(8 + capacity * c.sizeof(c.c_size_t))
     api.check(job.k.QueryInformationJobObject(job.handle, 3, buf, c.sizeof(buf), None))
     assigned = w.DWORD.from_buffer(buf, 0).value
@@ -214,11 +214,57 @@ def owned_job_inventory(api, job, expected_owner_pid):
             api.check(api.k.QueryFullProcessImageNameW(handle, 0, image, c.byref(length)))
             name = Path(image.value).name.casefold()
             allowed = {"python.exe", "pythonw.exe", "conhost.exe", "genericboundaryprobe.exe"}
-            records.append({"expected_owner": pid == expected_owner_pid,
+            image_path = Path(image.value)
+            expected_owner = pid == expected_owner_pid
+            owner_match = expected_owner and os.path.normcase(str(image_path)) == os.path.normcase(sys.executable)
+            console_match = (not expected_owner and
+                os.path.normcase(str(image_path)) == os.path.normcase(baseline["path"]))
+            if console_match:
+                no_links(image_path, allow_hardlinks=True)
+                need(hashlib.sha256(image_path.read_bytes()).hexdigest() == baseline["sha256"],
+                     "SYSTEM_CONSOLE_HASH_DRIFT")
+            records.append({"expected_owner": expected_owner,
+                            "owner_image_verified": owner_match,
+                            "system_console_verified": console_match,
                             "image": name if name in allowed else "OTHER_OWNED_IMAGE"})
         finally:
             api.check(api.close(handle))
     return {"assigned": assigned, "listed": count, "members": records}
+
+
+def system_console_baseline(root):
+    """Consume the fixed workflow's OS signature check; never create a recovery attestor."""
+    path = root / "OS_CONHOST_BASELINE.json"
+    no_links(path)
+    value = json.loads(path.read_text(encoding="utf-8-sig"))
+    expected = Path(os.environ["SYSTEMROOT"]) / "System32" / "conhost.exe"
+    need(value.get("schema") == "owned-test-system-console/v1" and
+         os.path.normcase(value.get("path", "")) == os.path.normcase(str(expected)),
+         "SYSTEM_CONSOLE_PATH_MISMATCH")
+    need(value.get("signature_status") == "Valid" and value.get("microsoft_signer") is True and
+         re.fullmatch(r"[A-Fa-f0-9]{40}", value.get("signer_thumbprint", "")) is not None and
+         re.fullmatch(r"[a-f0-9]{64}", value.get("sha256", "")) is not None,
+         "SYSTEM_CONSOLE_SIGNATURE_BASELINE_REQUIRED")
+    no_links(expected, allow_hardlinks=True)
+    need(hashlib.sha256(expected.read_bytes()).hexdigest() == value["sha256"],
+         "SYSTEM_CONSOLE_BASELINE_HASH_DRIFT")
+    return value
+
+def precreate_baseline(stats, inventory):
+    """Permit only the exact owner and at most one previously verified system console."""
+    need(stats.get("accounting_available") is True, "PRECREATE_ACCOUNTING_UNAVAILABLE")
+    members = inventory["members"]
+    count = inventory["listed"]
+    need(count in (1, 2) and inventory["assigned"] == count and len(members) == count,
+         "PRECREATE_MEMBER_COUNT_MISMATCH")
+    need(sum(x.get("expected_owner") is True and x.get("owner_image_verified") is True
+             for x in members) == 1, "PRECREATE_OWNER_IDENTITY_MISMATCH")
+    need(all(x.get("owner_image_verified") is True if x.get("expected_owner") is True
+             else x.get("system_console_verified") is True for x in members),
+         "UNEXPLAINED_PRECREATE_MEMBER")
+    need(stats.get("active_processes") == count and stats.get("total_processes") == count and
+         not stats.get("job_tree_limit_events"), "PRECREATE_ACCOUNTING_BASELINE_MISMATCH")
+    return count
 
 def accounting_diagnostic(stats):
     return {key: stats.get(key) for key in (
@@ -306,7 +352,7 @@ def recovery_checks(case, phase, jid):
             "cross_scope_read_rejected": True if fenced else None,
             "execution_witness_unchanged": True, "audit_chain": True}
 
-def one_case(root, phase, owner_sid):
+def one_case(root, phase, owner_sid, baseline):
     CONTEXT.update(role="coordinator", phase=phase, stage="PROFILE_AND_FIXTURE_SETUP")
     case = validate(root, phase)
     case.mkdir(exist_ok=False)
@@ -343,18 +389,21 @@ def one_case(root, phase, owner_sid):
                     "profile_name": profile, "runtime": str(exe.parent),
                     "temp": str(case / "fixture" / "out"), "home": str(case / "fixture" / "subject")}
         (case / "controller" / "worker.json").write_text(json.dumps(manifest))
-        outer = WindowsJob({"max_processes": 4, "memory_bytes": 512*1024**2}, custody=custody)
+        outer = WindowsJob({"max_processes": 6, "memory_bytes": 512*1024**2}, custody=custody)
         clock = time.monotonic()
         owner_api, pi = host_owner(root, phase, custody)
         CONTEXT.update(stage="WAIT_DURABLE_CRASH_CHECKPOINT")
         cp = wait_checkpoint(case / "controller" / "checkpoint.json", owner_api, pi.hProcess,
                              case / "controller" / "owner_error.json")
         need(cp["phase"] == phase, "CHECKPOINT_PHASE_MISMATCH")
+        pre_stats = outer.stats()
+        inventory = owned_job_inventory(owner_api, outer, pi.dwProcessId, baseline)
+        expected_precreate_total = precreate_baseline(pre_stats, inventory) if phase == "starting" else None
         dump({"case": phase, "stage": "PRECRASH_OWNED_JOB_DIAGNOSTIC",
               "checkpoint_process_created": cp["process_created"],
               "checkpoint_command_released": cp["command_released"],
-              "accounting": accounting_diagnostic(outer.stats()),
-              "owned_members": owned_job_inventory(owner_api, outer, pi.dwProcessId)})
+              "accounting": accounting_diagnostic(pre_stats),
+              "owned_members": inventory, "verified_precreate_total": expected_precreate_total})
         CONTEXT.update(stage="OBSERVE_EXACT_NATIVE_WORKERS")
         if phase != "starting":
             owner_api.k.OpenProcess.argtypes = [w.DWORD, w.BOOL, w.DWORD]
@@ -406,7 +455,8 @@ def one_case(root, phase, owner_sid):
         need(tree_empty, "OUTER_TREE_NOT_EMPTY_AFTER_OWNER_DEATH")
         need(stats.get("accounting_available") is True, "POSTCRASH_ACCOUNTING_UNAVAILABLE")
         if phase == "starting":
-            need(stats["total_processes"] == 1, "PRECREATE_PROCESS_COUNT_MISMATCH")
+            need(stats["total_processes"] == expected_precreate_total and stats["active_processes"] == 0,
+                 "PRECREATE_LIFETIME_BASELINE_CHANGED")
         cleanup_ms = round((time.monotonic() - trigger)*1000, 3)
         result = recovery_checks(case, phase, cp["job_id"])
         result.update(passed=True, durable_crash_phase=phase, owner_forcibly_terminated_by_handle=True,
@@ -439,10 +489,11 @@ def coordinator(root):
     need(not any("TOKEN" in k.upper() or k.upper().startswith("ACTIONS_") for k in os.environ),
          "COORDINATOR_CREDENTIAL_ENV_NOT_STRIPPED")
     owner_sid = fixture.token_sid()
+    baseline = system_console_baseline(root)
     results = {}
     for phase in PHASES:
         dump({"case": phase, "stage": "BEGIN_OWNED_CRASH_CASE"})
-        results[phase] = one_case(root, phase, owner_sid)
+        results[phase] = one_case(root, phase, owner_sid, baseline)
         dump({"case": phase, "evidence": results[phase]})
     dump({"schema": "localcontrol-bounded-crash-restart/v1", "result": "PASS_CRASH_RESTART_BOUNDARIES_ONLY",
           "case_count": len(results), "candidate_commit": "e071dd2d099577e3ded081f1ffefd7c2bf22e3a8",
@@ -479,4 +530,3 @@ if __name__ == "__main__":
             dump(dict(safe_error(error), schema="localcontrol-bounded-crash-restart/v1",
                       result="FAIL_OR_BLOCKED"))
             sys.exit(1)
-
