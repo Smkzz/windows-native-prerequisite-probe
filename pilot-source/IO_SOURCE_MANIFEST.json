@@ -1,0 +1,79 @@
+{
+  "schema": "localcontrol-bounded-io-lifecycle-source-manifest/v1",
+  "candidate_commit": "e071dd2d099577e3ded081f1ffefd7c2bf22e3a8",
+  "candidate_tree": "2afd017548b4ace8e2a7c67adebb6a5a9baeaf10",
+  "selected_module_count": 10,
+  "full_candidate_uploaded": false,
+  "files": [
+    {
+      "path": "pilot-source/io_lifecycle_pilot.py",
+      "bytes": 12766,
+      "sha256": "809084bb2d315497b507a66fa7c0a5f8f42e0b2e7cfca108be7e9c89169b897e"
+    },
+    {
+      "path": "pilot-source/LimitedIoProbe.cs",
+      "bytes": 2914,
+      "sha256": "8ab6df49c2efdb8c8d46b64d28ff82f272172fa5b89aa136200f765ecc756db2"
+    },
+    {
+      "path": "pilot-source/localcontrol/__init__.py",
+      "bytes": 114,
+      "sha256": "e0d95e9664179a3de8229bef96f14c0cca6d26e12b839576d434815d6924483a"
+    },
+    {
+      "path": "pilot-source/localcontrol/appcontainer.py",
+      "bytes": 17831,
+      "sha256": "8125f054b0161ca4ed27f686e659a5cde70062fdbe9f8adde69680241d2540a2"
+    },
+    {
+      "path": "pilot-source/localcontrol/errors.py",
+      "bytes": 605,
+      "sha256": "6c50077bcefd9662af6f7b3e4d0e25875eacff7dd427cde8b5e036d2f83aa5b0"
+    },
+    {
+      "path": "pilot-source/localcontrol/job_ownership.py",
+      "bytes": 7198,
+      "sha256": "1bab92eb643226341e5c0bf73015587aeccff6c2a37c706090f67ca4525ea328"
+    },
+    {
+      "path": "pilot-source/localcontrol/jobs.py",
+      "bytes": 65668,
+      "sha256": "6319d72f1ec24135762ff89741ac8887d159ddfcc99b4861e66fed1bcfcdf61c"
+    },
+    {
+      "path": "pilot-source/localcontrol/lease.py",
+      "bytes": 1065,
+      "sha256": "6200bbf5f1c6add5e2b4b6ed735181c11f035e8d113cbe3b5faacfac803d9c81"
+    },
+    {
+      "path": "pilot-source/localcontrol/policy.py",
+      "bytes": 16724,
+      "sha256": "0c054612e141560e1df9515422e8358ac02a1b291ae1ee44afdd518f1b2826fc"
+    },
+    {
+      "path": "pilot-source/localcontrol/pressure.py",
+      "bytes": 11447,
+      "sha256": "42924e14a6938d446326d0013c732706103a83bad02f85b6f8549b0bf149f197"
+    },
+    {
+      "path": "pilot-source/localcontrol/store.py",
+      "bytes": 42781,
+      "sha256": "b6ebdf80196bc57faa89b4592083bb2ae622152a2b24ef136a60fa19fa9fd365"
+    },
+    {
+      "path": "pilot-source/localcontrol/windows_job.py",
+      "bytes": 17224,
+      "sha256": "58dcb84c73844b0c477c63bd3cfa7177e674ef5e0284aebdd731de425b3d5b88"
+    },
+    {
+      "path": "pilot-source/ownership_pilot.py",
+      "bytes": 17902,
+      "sha256": "3debfd52ae9488c128f0a66ad5b2f05890dde70ef6aa72a3415e0b4a0f761457"
+    },
+    {
+      "path": "pilot-source/restart_pilot.py",
+      "bytes": 28514,
+      "sha256": "e93cedc9b8968f9c61d898d2a75b70abb40c304c545e0a1b7468b32a8cee8d7e"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+name: Bounded LocalControl IO lifecycle pilot
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: bounded-localcontrol-io-lifecycle-pilot
+  cancel-in-progress: false
+jobs:
+  bounded-io-lifecycle:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Verify frozen inputs and run two IO lifecycle cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'Smkzz/windows-native-prerequisite-probe'){throw 'REPOSITORY_MISMATCH'}
+          if($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:RUNNER_OS -cne 'Windows'){throw 'MANUAL_WINDOWS_ONLY'}
+          if($env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$'){throw 'COMMIT_ID_INVALID'}
+          $root='C:\LocalControlIoLifecycle-'+[Guid]::NewGuid().ToString('N')
+          if(Test-Path -LiteralPath $root){throw 'NEW_ROOT_REQUIRED'}
+          $null=New-Item -ItemType Directory -Path $root
+          $failed=$true
+          try {
+            $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
+            $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
+            Invoke-WebRequest -Uri ($base+'pilot-source/IO_SOURCE_MANIFEST.json') -OutFile $manifestPath
+            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne '5a2afead9e67d053f699e28e54cc0eb83d5dfb8306224dc270c22bd4413fe218'){throw 'MANIFEST_HASH_MISMATCH'}
+            $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+            if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or $manifest.files.Count -ne 14){throw 'SOURCE_MANIFEST_DRIFT'}
+            $sourceRoot=Join-Path $root 'source'
+            $null=New-Item -ItemType Directory -Path $sourceRoot
+            $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach($file in $manifest.files) {
+              if($file.path -notmatch '^pilot-source/(localcontrol/[a-z_]+\.py|ownership_pilot\.py|restart_pilot\.py|io_lifecycle_pilot\.py|LimitedIoProbe\.cs)$'){throw 'SOURCE_ALLOWLIST_PATH_REFUSED'}
+              if(-not $seen.Add([string]$file.path)){throw 'DUPLICATE_SOURCE_PATH'}
+              $relative=$file.path.Substring('pilot-source/'.Length)
+              $target=[IO.Path]::GetFullPath((Join-Path $sourceRoot $relative))
+              if(-not $target.StartsWith($sourceRoot+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'SOURCE_ESCAPE_REFUSED'}
+              $null=[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))
+              Invoke-WebRequest -Uri ($base+$file.path) -OutFile $target
+              if((Get-Item -LiteralPath $target).Length -ne $file.bytes -or
+                 (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256){throw 'SOURCE_BYTES_MISMATCH'}
+            }
+            $compiler=Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+            if(-not $env:RUNNER_TOOL_CACHE){throw 'INSTALLED_TOOL_CACHE_REQUIRED'}
+            $cache=[IO.Path]::GetFullPath($env:RUNNER_TOOL_CACHE)
+            $python=Join-Path $cache 'Python\3.12.10\x64\python.exe'
+            $complete=Join-Path $cache 'Python\3.12.10\x64.complete'
+            if(-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $complete -PathType Leaf)){throw 'CACHED_PYTHON_31210_REQUIRED'}
+            if(((Get-Item -LiteralPath $python -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'PYTHON_ALIAS_OR_REPARSE_REFUSED'}
+            if(-not (Test-Path -LiteralPath $compiler)){throw 'INSTALLED_COMPILER_REQUIRED'}
+            $compiled=Join-Path $root 'compiled-helper.exe'
+            & $compiler /nologo /target:exe /platform:x64 /out:$compiled (Join-Path $sourceRoot 'LimitedIoProbe.cs')
+            if($LASTEXITCODE -ne 0){throw 'GENERIC_HELPER_COMPILATION_FAILED'}
+            [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
+                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='5a2afead9e67d053f699e28e54cc0eb83d5dfb8306224dc270c22bd4413fe218';
+                python_sha256=(Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash.ToLowerInvariant();
+                compiler_sha256=(Get-FileHash -LiteralPath $compiler -Algorithm SHA256).Hash.ToLowerInvariant();
+                os_build=[Environment]::OSVersion.Version.ToString();image_version=$env:ImageVersion;
+                full_release_qualification=$false;production_activation_authorized=$false} | ConvertTo-Json -Compress
+            $psi=[Diagnostics.ProcessStartInfo]::new()
+            $psi.FileName=$python
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            $psi.WorkingDirectory=$root
+            $psi.Environment.Clear()
+            foreach($name in @('SYSTEMROOT','WINDIR','SYSTEMDRIVE','LOCALAPPDATA','PATH','TEMP','TMP','USERPROFILE')) {
+              $value=[Environment]::GetEnvironmentVariable($name)
+              if($null -ne $value){$psi.Environment[$name]=$value}
+            }
+            foreach($arg in @('-I','-B','-S','-X','utf8',(Join-Path $sourceRoot 'io_lifecycle_pilot.py'),$root)){$psi.ArgumentList.Add($arg)}
+            $process=[Diagnostics.Process]::new()
+            $process.StartInfo=$psi
+            try {
+              if(-not $process.Start()){throw 'OWNED_COORDINATOR_START_FAILED'}
+              $stdout=$process.StandardOutput.ReadToEndAsync()
+              $stderr=$process.StandardError.ReadToEndAsync()
+              if(-not $process.WaitForExit(180000)){
+                $process.Kill($true)
+                $process.WaitForExit()
+                throw 'OWNED_COORDINATOR_TIMEOUT_STOPPED'
+              }
+              $out=$stdout.GetAwaiter().GetResult()
+              $err=$stderr.GetAwaiter().GetResult()
+              if($out.Length -gt 100000 -or $err.Length -gt 100000){throw 'BOUNDED_OUTPUT_EXCEEDED'}
+              $out
+              if($err.Length){Write-Output ('{"coordinator_stderr_characters":'+$err.Length+'}')}
+              $last=($out.Trim() -split [Environment]::NewLine)[-1] | ConvertFrom-Json
+              if($process.ExitCode -ne 0 -or $last.result -cne 'PASS_IO_LIFECYCLE_ONLY' -or $last.case_count -ne 2){throw 'BOUNDED_IO_LIFECYCLE_PILOT_FAILED'}
+              $failed=$false
+            } finally {
+              if($null -ne $process -and -not $process.HasExited){$process.Kill($true);$process.WaitForExit()}
+              $process.Dispose()
+            }
+          } finally {
+            $resolved=[IO.Path]::GetFullPath($root)
+            if($resolved -notmatch '^C:\\LocalControlIoLifecycle-[a-f0-9]{32}$'){throw 'CLEANUP_SCOPE_REFUSED'}
+            $items=@(Get-Item -LiteralPath $resolved -Force)+@(Get-ChildItem -LiteralPath $resolved -Recurse -Force)
+            if($items | Where-Object {($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0}){throw 'CLEANUP_REPARSE_REFUSED'}
+            [IO.Directory]::Delete($resolved,$true)
+            Write-Output '{"runner_fixture_cleanup":"PASS"}'
+          }
+          if($failed){exit 1}
