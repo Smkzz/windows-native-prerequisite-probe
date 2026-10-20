@@ -479,8 +479,8 @@
     },
     {
       "path": "pilot-source/regression_driver.py",
-      "bytes": 13627,
-      "sha256": "bc6786a19c30326e008a90392f393f6339063cd1277fdea722a0bee4fe500b97",
+      "bytes": 13718,
+      "sha256": "fc66f507e5823fe8cecbd7863fe36bfecbd7a3c2d07fd5e9e1cb4a057b290d91",
       "new_fixture": true
     },
     {
@@ -503,8 +503,8 @@
     },
     {
       "path": "pilot-source/server_mcp_probe.py",
-      "bytes": 11166,
-      "sha256": "3b14ed86d7aa73b032b0ec185c0894dd3a9be9de7bd6528694b2a4389782c92f",
+      "bytes": 14043,
+      "sha256": "84aa5eb826e9b93866192f6c09187fd65d3b8a297c878fcd2cd655134311c2f3",
       "new_fixture": true
     },
     {

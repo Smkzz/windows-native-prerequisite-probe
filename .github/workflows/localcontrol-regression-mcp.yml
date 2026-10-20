@@ -76,7 +76,7 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/REGRESSION_MCP_SOURCE_MANIFEST.json') -OutFile $manifestPath
-            $manifestHash='ca9d67293cf587fa20b2c0f33443f68035d3aa3cab8dd81c55cdea81dfc42e39'
+            $manifestHash='949cda2e62cefd9bd1981c27c208bf7174f959211dff80ca58f4dde8cb874c58'
             if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $manifestHash){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or
@@ -153,8 +153,55 @@ jobs:
           } finally {
             $resolved=[IO.Path]::GetFullPath($root)
             if($resolved -notmatch '^C:\\LocalControlRegressionMcp-[a-f0-9]{32}$'){throw 'CLEANUP_SCOPE_REFUSED'}
-            $items=@(Get-Item -LiteralPath $resolved -Force)+@(Get-ChildItem -LiteralPath $resolved -Recurse -Force)
-            if($items | Where-Object {($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0}){throw 'CLEANUP_REPARSE_REFUSED'}
+            # Enumerate metadata only, never descend into a reparse directory.
+            # Diagnostics do not authorize removing or following any link.
+            $pending=[Collections.Generic.Queue[string]]::new()
+            $rootItem=Get-Item -LiteralPath $resolved -Force
+            if(($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'CLEANUP_ROOT_REPARSE_REFUSED'}
+            $pending.Enqueue($resolved)
+            $links=[Collections.Generic.List[object]]::new()
+            $linkCount=0;$entryCount=0;$directoryCount=0;$complete=$true
+            $clock=[Diagnostics.Stopwatch]::StartNew()
+            while($pending.Count -gt 0 -and $complete) {
+              $directory=$pending.Dequeue();$directoryCount++
+              if($directoryCount -gt 4096 -or $clock.Elapsed.TotalSeconds -gt 10){$complete=$false;break}
+              foreach($item in Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop) {
+                $entryCount++
+                if($entryCount -gt 16384 -or $clock.Elapsed.TotalSeconds -gt 10){$complete=$false;break}
+                $path=[IO.Path]::GetFullPath($item.FullName)
+                if(-not $path.StartsWith($resolved+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'CLEANUP_INVENTORY_ESCAPE_REFUSED'}
+                if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                  $linkCount++
+                  if($links.Count -lt 16) {
+                    $relative=[IO.Path]::GetRelativePath($resolved,$path)
+                    if($relative.Length -gt 256 -or $relative -match '[\x00-\x1f\x7f]'){$relative='BOUNDED_NAME_WITHHELD'}
+                    $raw=[string]$item.LinkTarget
+                    $targetClass='UNAVAILABLE';$relativeTarget=$null
+                    if($raw -and $raw.Length -le 4096) {
+                      try {
+                        $target=[IO.Path]::GetFullPath($raw,[IO.Path]::GetDirectoryName($path))
+                        if($target.StartsWith($resolved+'\',[StringComparison]::OrdinalIgnoreCase)){
+                          $targetClass='LEXICALLY_INSIDE_OWNED_ROOT_NOT_FOLLOWED'
+                          $relativeTarget=[IO.Path]::GetRelativePath($resolved,$target)
+                          if($relativeTarget.Length -gt 256 -or $relativeTarget -match '[\x00-\x1f\x7f]'){$relativeTarget='BOUNDED_NAME_WITHHELD'}
+                        } else {$targetClass='OUTSIDE_OWNED_ROOT_NOT_FOLLOWED'}
+                      } catch {$targetClass='UNNORMALIZABLE_NOT_FOLLOWED'}
+                    }
+                    $hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($raw))).ToLowerInvariant()
+                    $kind=if($item.LinkType -in @('SymbolicLink','Junction')){[string]$item.LinkType}else{'UNKNOWN_REPARSE_TYPE'}
+                    $links.Add([ordered]@{path=$relative;attributes=[long]$item.Attributes;link_type=$kind;
+                      reparse_tag='NOT_QUERIED';target_class=$targetClass;target_relative=$relativeTarget;target_sha256=$hash})
+                  }
+                  continue
+                }
+                if($item.PSIsContainer){$pending.Enqueue($path)}
+              }
+            }
+            [ordered]@{cleanup_inventory_complete=$complete;entries_examined=$entryCount;directories_examined=$directoryCount;
+              reparse_count=$linkCount;reparse_entries=@($links.ToArray());reparse_entries_truncated=($linkCount -gt 16);
+              link_targets_followed=$false;link_deletion_authorized=$false}|ConvertTo-Json -Depth 6 -Compress
+            if(-not $complete){throw 'CLEANUP_INVENTORY_BOUND_REFUSED'}
+            if($linkCount -gt 0){throw 'CLEANUP_REPARSE_REFUSED'}
             [IO.Directory]::Delete($resolved,$true)
             Write-Output '{"runner_fixture_cleanup":"PASS"}'
           }

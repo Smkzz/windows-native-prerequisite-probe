@@ -13,6 +13,7 @@ import sys
 import time
 
 STAGE="SCHEMA_CATALOG"
+RESTART_DIAGNOSTIC={}
 
 def need(value, reason):
     if not value:
@@ -25,15 +26,62 @@ def durable(root, jid):
         row = db.execute("SELECT record FROM jobs WHERE id=?", (jid,)).fetchone()
         need(row is not None, "DURABLE_JOB_MISSING")
         value = json.loads(row[0])
-        rows = db.execute("SELECT seq,payload,prev,hash FROM audit ORDER BY seq").fetchall()
+        rows = db.execute("SELECT seq,payload,prev,hash FROM audit ORDER BY seq LIMIT 513").fetchall()
+        need(len(rows)<=512,"AUDIT_SNAPSHOT_BOUND_EXCEEDED")
         return {"status":value["status"],"phase":value["_ownership"]["phase"],
                 "row_sha256":hashlib.sha256(row[0].encode()).hexdigest(),
                 "audit_sha256":hashlib.sha256(json.dumps(rows,separators=(",",":")).encode()).hexdigest(),
                 "finished_count":sum(json.loads(r[1]).get("kind")=="job_finished" and
                     json.loads(r[1]).get("metadata",{}).get("job_id")==jid for r in rows),
-                "recovered_count":sum(json.loads(r[1]).get("kind")=="job_recovered" for r in rows)}
+                "recovered_count":sum(json.loads(r[1]).get("kind")=="job_recovered" for r in rows),
+                "_audit_rows":rows}
     finally:
         db.close()
+
+def canonical(value):
+    return json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(",",":"),allow_nan=False)
+
+def compare_restart(before,after,jid):
+    """Preserve every old row; allow only the two deliberately audited reads."""
+    global RESTART_DIAGNOSTIC
+    old,new=before["_audit_rows"],after["_audit_rows"]
+    suffix=new[len(old):]
+    def chain(rows):
+        previous="0"*64
+        for index,(seq,payload,prev,hashed) in enumerate(rows,1):
+            if seq!=index or prev!=previous or hashlib.sha256((prev+payload).encode()).hexdigest()!=hashed:
+                return False
+            previous=hashed
+        return True
+    expected=[{"scope":"local-owner:pilot","tool":tool,
+               "input_sha256":hashlib.sha256(canonical(args).encode()).hexdigest()}
+              for tool,args in (("job_read",{"job_id":jid,"view":"summary"}),("process_list",{}))]
+    matches=[]
+    for row,metadata in zip(suffix[:2],expected):
+        try:
+            value=json.loads(row[1])
+        except (ValueError,TypeError):
+            matches.append(False)
+            continue
+        if not isinstance(value,dict):
+            matches.append(False)
+            continue
+        matches.append(set(value)=={"time_ns","kind","metadata"} and
+                       type(value["time_ns"]) is int and value["time_ns"]>0 and
+                       value["kind"]=="read_intent" and value["metadata"]==metadata and
+                       canonical(value)==row[1])
+    fields=("status","phase","row_sha256","finished_count","recovered_count")
+    RESTART_DIAGNOSTIC={"before_audit_rows":len(old),"after_audit_rows":len(new),
+        "appended_rows":len(suffix),"before_audit_sha256":before["audit_sha256"],
+        "after_audit_sha256":after["audit_sha256"],"before_row_sha256":before["row_sha256"],
+        "after_row_sha256":after["row_sha256"],"changed_terminal_fields":[k for k in fields if before[k]!=after[k]],
+        "audit_prefix_unchanged":new[:len(old)]==old,"before_chain_valid":chain(old),
+        "after_chain_valid":chain(new),"expected_read_metadata_matches":matches}
+    need(not RESTART_DIAGNOSTIC["changed_terminal_fields"],"MCP_RESTART_CHANGED_TERMINAL_ROW_OR_COUNTS")
+    need(RESTART_DIAGNOSTIC["audit_prefix_unchanged"],"MCP_RESTART_CHANGED_AUDIT_PREFIX")
+    need(chain(old) and chain(new),"MCP_RESTART_AUDIT_CHAIN_INVALID")
+    need(len(suffix)==2 and matches==[True,True],"MCP_RESTART_UNEXPECTED_AUDIT_APPEND")
+    return dict(RESTART_DIAGNOSTIC)
 
 async def exercise(root):
     global STAGE
@@ -169,8 +217,11 @@ async def exercise(root):
                     need(record["status"]=="completed","MCP_RESTART_TERMINAL_DRIFT")
                     jobs=(await checked(session,"process_list",{"project":"pilot"}))["data"]["jobs"]
                     need(len(jobs)==1,"MCP_RESTART_REPLAYED_JOB")
-        need(durable(root,jid)==before,"MCP_RESTART_CHANGED_DURABLE_JOB_OR_AUDIT")
-        evidence.update(fresh_server_reopen=True,restart_job_and_audit_unchanged=True,
+                    context=await checked(session,"localcontrol_context",{})
+                    need(context["data"]["audit_chain_ok"] is True,"RESTART_FINAL_AUDIT_CHAIN_FAILED")
+        evidence["restart_comparison"]=compare_restart(before,durable(root,jid),jid)
+        evidence.update(fresh_server_reopen=True,restart_job_and_audit_prefix_unchanged=True,
+                        restart_exactly_two_expected_audited_reads=True,
                         providers_disabled=True,experimental_v120_disabled=True)
         return evidence
     finally:

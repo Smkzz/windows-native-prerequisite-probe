@@ -163,6 +163,7 @@ def child(root,phase):
         value={"status":"FAIL_OR_BLOCKED","phase":phase,"error_type":type(error).__name__,"reason":reason}
         if phase=="mcp" and "server_mcp_probe" in sys.modules:
             value["probe_stage"]=sys.modules["server_mcp_probe"].STAGE
+            value["restart_diagnostic"]=sys.modules["server_mcp_probe"].RESTART_DIAGNOSTIC
         if isinstance(error,ImportError) and isinstance(error.name,str) and re.fullmatch(r"[A-Za-z0-9_.]{1,100}",error.name):
             value["import_module"]=error.name
         if isinstance(error,OSError) and type(getattr(error,"winerror",None)) is int:
