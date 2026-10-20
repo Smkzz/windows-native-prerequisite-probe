@@ -1,0 +1,307 @@
+using System;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Web.Script.Serialization;
+
+public static class GenericBoundaryProbe {
+ [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+ public struct Start {
+  public uint cb; public string reserved,desktop,title;
+  public uint x,y,xsize,ysize,xchars,ychars,fill,flags;
+  public ushort show,reserved2; public IntPtr reservedPtr,input,output,error;
+ }
+ [StructLayout(LayoutKind.Sequential)] public struct StartEx { public Start basic; public IntPtr list; }
+ [StructLayout(LayoutKind.Sequential)] public struct Proc { public IntPtr process,thread; public uint pid,tid; }
+ [StructLayout(LayoutKind.Sequential)] public struct Caps { public IntPtr sid,items; public uint count,reserved; }
+ [StructLayout(LayoutKind.Sequential)] public struct BasicLimit {
+  public long processTime,jobTime; public uint flags; public UIntPtr min,max; public uint active;
+  public UIntPtr affinity; public uint priority,scheduling;
+ }
+ [StructLayout(LayoutKind.Sequential)] public struct Io { public ulong a,b,c,d,e,f; }
+ [StructLayout(LayoutKind.Sequential)] public struct Limits {
+  public BasicLimit basic; public Io io; public UIntPtr processMemory,jobMemory,peakProcess,peakJob;
+ }
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]
+ static extern bool CreateProcessW(string app,StringBuilder command,IntPtr pa,IntPtr ta,bool inherit,uint flags,IntPtr env,string directory,ref StartEx start,out Proc p);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool InitializeProcThreadAttributeList(IntPtr list,int count,int flags,ref IntPtr bytes);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool UpdateProcThreadAttribute(IntPtr list,uint flags,IntPtr attribute,IntPtr value,IntPtr size,IntPtr old,IntPtr returned);
+ [DllImport("kernel32.dll")] static extern void DeleteProcThreadAttributeList(IntPtr list);
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern IntPtr CreateJobObjectW(IntPtr attributes,string name);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool SetInformationJobObject(IntPtr job,int type,ref Limits limits,uint size);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool IsProcessInJob(IntPtr process,IntPtr job,out bool inside);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool TerminateJobObject(IntPtr job,uint code);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint ResumeThread(IntPtr thread);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint WaitForSingleObject(IntPtr handle,uint milliseconds);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr process,out uint code);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool TerminateProcess(IntPtr process,uint code);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool CloseHandle(IntPtr handle);
+ [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
+ [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr OpenProcess(uint rights,bool inherit,uint pid);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool DuplicateHandle(IntPtr sourceProcess,IntPtr source,IntPtr targetProcess,out IntPtr target,uint rights,bool inherit,uint options);
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern IntPtr CreateFileW(string path,uint access,uint sharing,IntPtr security,uint disposition,uint flags,IntPtr template);
+ [DllImport("advapi32.dll",SetLastError=true)] static extern bool OpenProcessToken(IntPtr process,uint rights,out IntPtr token);
+ [DllImport("advapi32.dll",SetLastError=true)] static extern bool GetTokenInformation(IntPtr token,int kind,IntPtr data,int size,out int returned);
+ [DllImport("userenv.dll",CharSet=CharSet.Unicode)] static extern int CreateAppContainerProfile(string name,string display,string description,IntPtr caps,uint count,out IntPtr sid);
+ [DllImport("userenv.dll",CharSet=CharSet.Unicode)] static extern int DeleteAppContainerProfile(string name);
+ [DllImport("advapi32.dll")] static extern IntPtr FreeSid(IntPtr sid);
+ static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
+ static Dictionary<string,object> LastContainerToken;
+ static Dictionary<string,object> Context=new Dictionary<string,object>();
+ static string Exe { get { return System.Reflection.Assembly.GetExecutingAssembly().Location; } }
+ static void Need(bool ok,string code) { if(!ok) throw new InvalidOperationException(code); }
+ static void Check(bool ok,string code) { if(!ok) throw new Win32Exception(Marshal.GetLastWin32Error(),code); }
+ static string Quote(string s) { Need(s.IndexOf('"')<0,"QUOTE_IN_FIXED_ARGUMENT"); return "\""+s+"\""; }
+ static string Serialize(object o) { return Json.Serialize(o); }
+ static IntPtr Job() {
+  IntPtr j=CreateJobObjectW(IntPtr.Zero,null); Check(j!=IntPtr.Zero,"CREATE_JOB");
+  try {
+   Limits l=new Limits(); l.basic.flags=0x2000;
+   Check(SetInformationJobObject(j,9,ref l,(uint)Marshal.SizeOf(typeof(Limits))),"SET_KILL_ON_CLOSE");
+   return j;
+  } catch { CloseHandle(j); throw; }
+ }
+ static Dictionary<string,object> Token(IntPtr process) {
+  IntPtr token; Check(OpenProcessToken(process,8,out token),"OPEN_TOKEN");
+  IntPtr b=Marshal.AllocHGlobal(1024);
+  try {
+   int n; Check(GetTokenInformation(token,29,b,1024,out n),"TOKEN_APPCONTAINER");
+   int yes=Marshal.ReadInt32(b);
+   Dictionary<string,object> d=new Dictionary<string,object>(); d["is_appcontainer"]=yes==1;
+   if(yes==1) {
+    Check(GetTokenInformation(token,31,b,1024,out n),"TOKEN_CONTAINER_SID");
+    d["sid"]=new SecurityIdentifier(Marshal.ReadIntPtr(b)).Value;
+    Check(GetTokenInformation(token,30,b,1024,out n),"TOKEN_CAPABILITIES");
+    d["capability_count"]=Marshal.ReadInt32(b);
+   }
+   return d;
+  } finally { Marshal.FreeHGlobal(b); CloseHandle(token); }
+ }
+ static Proc Spawn(string[] args,IntPtr job,IntPtr containerSid) {
+  string command=Quote(Exe);
+  foreach(string s in args) command+=" "+Quote(s);
+  StartEx start=new StartEx(); start.basic.cb=(uint)Marshal.SizeOf(typeof(Start));
+  IntPtr attrs=IntPtr.Zero,capmem=IntPtr.Zero,envmem=IntPtr.Zero; bool initialized=false;
+  Proc p=new Proc(); bool created=false;
+  try {
+   uint flags=0x08000000|0x4|0x400;
+   string system=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+   string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+   Need(!String.IsNullOrEmpty(local) && Directory.Exists(local),"LOADED_LOCALAPPDATA_REQUIRED");
+   string environment="LOCALAPPDATA="+local+"\0PATH="+system+"\\System32\0SystemRoot="+system+"\0TEMP="+Path.GetDirectoryName(Exe)+"\\out\0WINDIR="+system+"\0\0";
+   envmem=Marshal.StringToHGlobalUni(environment);
+   if(containerSid!=IntPtr.Zero) {
+    IntPtr bytes=IntPtr.Zero; InitializeProcThreadAttributeList(IntPtr.Zero,1,0,ref bytes);
+    Need(bytes.ToInt64()>0 && bytes.ToInt64()<65536,"ATTRIBUTE_LIST_SIZE");
+    attrs=Marshal.AllocHGlobal(bytes);
+    Check(InitializeProcThreadAttributeList(attrs,1,0,ref bytes),"INIT_ATTRIBUTES"); initialized=true;
+    Caps c=new Caps(); c.sid=containerSid;
+    capmem=Marshal.AllocHGlobal(Marshal.SizeOf(typeof(Caps))); Marshal.StructureToPtr(c,capmem,false);
+    Check(UpdateProcThreadAttribute(attrs,0,new IntPtr(0x20009),capmem,new IntPtr(Marshal.SizeOf(typeof(Caps))),IntPtr.Zero,IntPtr.Zero),"SET_SECURITY_CAPABILITIES");
+    start.list=attrs; start.basic.cb=(uint)Marshal.SizeOf(typeof(StartEx)); flags|=0x80000;
+   }
+   Check(CreateProcessW(Exe,new StringBuilder(command),IntPtr.Zero,IntPtr.Zero,false,flags,envmem,Path.GetDirectoryName(Exe),ref start,out p),"CREATE_SUSPENDED_CHILD"); created=true;
+   if(job!=IntPtr.Zero) {
+    Check(AssignProcessToJobObject(job,p.process),"ASSIGN_OWNED_JOB");
+    bool inside; Check(IsProcessInJob(p.process,job,out inside),"QUERY_OWNED_JOB"); Need(inside,"WRONG_JOB");
+   }
+   if(containerSid!=IntPtr.Zero) {
+    LastContainerToken=Token(p.process);
+    Need((bool)LastContainerToken["is_appcontainer"] && (string)LastContainerToken["sid"]==new SecurityIdentifier(containerSid).Value && (int)LastContainerToken["capability_count"]==0,"SUSPENDED_TOKEN_WITNESS_FAILED");
+   }
+   Need(ResumeThread(p.thread)!=0xffffffff,"RESUME_CHILD"); return p;
+  } catch {
+   if(created) { TerminateProcess(p.process,91); WaitForSingleObject(p.process,5000); CloseHandle(p.process); CloseHandle(p.thread); }
+   throw;
+  } finally {
+   if(initialized) DeleteProcThreadAttributeList(attrs);
+   if(attrs!=IntPtr.Zero) Marshal.FreeHGlobal(attrs);
+   if(capmem!=IntPtr.Zero) Marshal.FreeHGlobal(capmem);
+   if(envmem!=IntPtr.Zero) Marshal.FreeHGlobal(envmem);
+  }
+ }
+ static void DisposeProc(ref Proc p) {
+  if(p.process!=IntPtr.Zero) {
+   if(WaitForSingleObject(p.process,0)==258) { TerminateProcess(p.process,92); WaitForSingleObject(p.process,5000); }
+   CloseHandle(p.process); p.process=IntPtr.Zero;
+  }
+  if(p.thread!=IntPtr.Zero) { CloseHandle(p.thread); p.thread=IntPtr.Zero; }
+ }
+ static int Access(string path,uint access) {
+  IntPtr h=CreateFileW(path,access,7,IntPtr.Zero,3,0x200080,IntPtr.Zero);
+  if(h==new IntPtr(-1)) return Marshal.GetLastWin32Error();
+  Check(CloseHandle(h),"CLOSE_FILE"); return 0;
+ }
+ static void FileAcl(string path,SecurityIdentifier owner,SecurityIdentifier app,bool allow) {
+  FileSecurity s=new FileSecurity(); s.SetAccessRuleProtection(true,false);
+  s.AddAccessRule(new FileSystemAccessRule(owner,FileSystemRights.FullControl,AccessControlType.Allow));
+  s.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier("S-1-5-18"),FileSystemRights.FullControl,AccessControlType.Allow));
+  if(allow) s.AddAccessRule(new FileSystemAccessRule(app,FileSystemRights.ReadAndExecute,AccessControlType.Allow));
+  File.SetAccessControl(path,s);
+ }
+ static Dictionary<string,object> AppTest(string root) {
+  string name="GenericBoundary."+Guid.NewGuid().ToString("N"); IntPtr sid=IntPtr.Zero,job=IntPtr.Zero;
+  Proc child=new Proc(); bool profile=false; Dictionary<string,object> result=new Dictionary<string,object>();
+  try {
+   int hr=CreateAppContainerProfile(name,name,"Disposable generic denial fixture",IntPtr.Zero,0,out sid);
+   Need(hr==0 && sid!=IntPtr.Zero,"CREATE_PROFILE"); profile=true;
+   SecurityIdentifier app=new SecurityIdentifier(sid); SecurityIdentifier owner=WindowsIdentity.GetCurrent().User;
+   DirectorySecurity baseAcl=Directory.GetAccessControl(root);
+   baseAcl.AddAccessRule(new FileSystemAccessRule(app,FileSystemRights.ReadAndExecute,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Allow));
+   Directory.SetAccessControl(root,baseAcl);
+   string output=Path.Combine(root,"out"); Directory.CreateDirectory(output);
+   DirectorySecurity outAcl=Directory.GetAccessControl(output);
+   outAcl.AddAccessRule(new FileSystemAccessRule(app,FileSystemRights.Modify,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Allow));
+   Directory.SetAccessControl(output,outAcl);
+   string allowed=Path.Combine(root,"allowed.txt"),denied=Path.Combine(root,"denied.txt"),witness=Path.Combine(output,"app.json");
+   File.WriteAllText(allowed,"public-positive-control"); File.WriteAllText(denied,"synthetic-denial-sentinel");
+   FileAcl(allowed,owner,app,true); FileAcl(denied,owner,app,false);
+   Need(Access(denied,0x80000000)==0 && Access(denied,0x40000000)==0,"UNRESTRICTED_DENIED_FILE_CONTROL_FAILED");
+   Context["exe_profile_sid_ace_present"]=File.GetAccessControl(Exe).GetSecurityDescriptorSddlForm(AccessControlSections.Access).Contains(app.Value);
+   job=Job(); child=Spawn(new string[]{"app",allowed,denied,witness,app.Value},job,sid);
+   Dictionary<string,object> token=LastContainerToken;
+   Need((bool)token["is_appcontainer"] && (string)token["sid"]==app.Value && (int)token["capability_count"]==0,"PARENT_TOKEN_WITNESS_FAILED");
+   Need(WaitForSingleObject(child.process,15000)==0,"APPCONTAINER_CHILD_TIMEOUT");
+   uint code; Check(GetExitCodeProcess(child.process,out code),"APP_EXIT_CODE"); Need(code==0,"APPCONTAINER_CHILD_FAILED_"+code);
+   Need(File.Exists(witness),"APPCONTAINER_WITNESS_MISSING");
+   Dictionary<string,object> evidence=Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(witness));
+   Need(Convert.ToBoolean(evidence["passed"]),"APP_RESULT_FAILED");
+   result["coordinator_token"]=token; result["child"]=evidence; result["passed"]=true;
+   return result;
+  } finally {
+   DisposeProc(ref child);
+   if(job!=IntPtr.Zero) Check(CloseHandle(job),"CLOSE_APP_JOB");
+   if(sid!=IntPtr.Zero) Need(FreeSid(sid)==IntPtr.Zero,"FREE_PROFILE_SID");
+   if(profile) { int cleanup=DeleteAppContainerProfile(name); result["profile_delete_hresult"]=cleanup; Need(cleanup==0,"DELETE_PROFILE"); }
+   result["process_and_job_handles_closed"]=true;
+  }
+ }
+ static int AppChild(string[] a) {
+  Dictionary<string,object> d=Token(GetCurrentProcess());
+  d["allowed_read_error"]=Access(a[1],0x80000000);
+  d["denied_read_error"]=Access(a[2],0x80000000);
+  d["denied_write_error"]=Access(a[2],0x40000000);
+  d["allowed_contents_match"]=File.ReadAllText(a[1])=="public-positive-control";
+  d["no_inherited_github_token"]=Environment.GetEnvironmentVariable("GITHUB_TOKEN")==null && Environment.GetEnvironmentVariable("GH_TOKEN")==null;
+  bool pass=(bool)d["is_appcontainer"] && (string)d["sid"]==a[4] && Convert.ToInt32(d["capability_count"])==0 &&
+   (int)d["allowed_read_error"]==0 && (int)d["denied_read_error"]==5 && (int)d["denied_write_error"]==5 &&
+   (bool)d["allowed_contents_match"] && (bool)d["no_inherited_github_token"];
+  d["passed"]=pass; File.WriteAllText(a[3],Serialize(d)); return pass?0:3;
+ }
+ static string WaitWitness(string path,IntPtr writer) {
+  Stopwatch watch=Stopwatch.StartNew();
+  while(watch.ElapsedMilliseconds<8000) {
+   if(File.Exists(path)) return File.ReadAllText(path);
+   Need(WaitForSingleObject(writer,0)==258,"WITNESS_OWNER_EXITED");
+   Thread.Sleep(50);
+  }
+  throw new InvalidOperationException("WITNESS_TIMEOUT");
+ }
+ static void AtomicWitness(string path,string text) { File.WriteAllText(path+".tmp",text); File.Move(path+".tmp",path); }
+ static Dictionary<string,object> JobTreeTest(string root) {
+  Stopwatch elapsed=Stopwatch.StartNew();
+  IntPtr job=Job(),duplicate=IntPtr.Zero,leaf=IntPtr.Zero; Proc parent=new Proc(); bool leafOwned=false;
+  try {
+   string file=Path.Combine(root,"tree.txt");
+   parent=Spawn(new string[]{"tree",file},job,IntPtr.Zero);
+   uint pid=uint.Parse(WaitWitness(file,parent.process));
+   leaf=OpenProcess(0x101001,false,pid); Check(leaf!=IntPtr.Zero,"OPEN_TREE_LEAF");
+   bool inside; Check(IsProcessInJob(leaf,job,out inside),"LEAF_MEMBERSHIP"); Need(inside,"LEAF_NOT_IN_EXACT_JOB"); leafOwned=true;
+   Need(WaitForSingleObject(parent.process,0)==258 && WaitForSingleObject(leaf,0)==258,"TREE_NOT_ALIVE");
+   Check(DuplicateHandle(GetCurrentProcess(),job,GetCurrentProcess(),out duplicate,0,false,2),"DUP_JOB_HANDLE");
+   Check(CloseHandle(job),"CLOSE_NONFINAL_HANDLE"); job=IntPtr.Zero;
+   Thread.Sleep(200);
+   Need(WaitForSingleObject(parent.process,0)==258 && WaitForSingleObject(leaf,0)==258,"NONFINAL_CLOSE_KILLED_TREE");
+   Need(elapsed.ElapsedMilliseconds<20000,"TREE_TRIGGER_TOO_LATE");
+   long trigger=elapsed.ElapsedMilliseconds;
+   Check(CloseHandle(duplicate),"CLOSE_FINAL_HANDLE"); duplicate=IntPtr.Zero;
+   Need(WaitForSingleObject(parent.process,5000)==0 && WaitForSingleObject(leaf,5000)==0,"FINAL_CLOSE_DID_NOT_CLEAN_TREE");
+   return new Dictionary<string,object>{{"trigger_elapsed_ms",trigger},{"completion_elapsed_ms",elapsed.ElapsedMilliseconds},{"natural_expiry_ms",30000},{"child_exact_job",true},{"descendant_exact_job",true},{"survived_nonfinal_handle_close",true},{"parent_exited_after_final_close",true},{"descendant_exited_after_final_close",true},{"passed",true}};
+  } finally {
+   if(job!=IntPtr.Zero) { TerminateJobObject(job,93); CloseHandle(job); }
+   if(duplicate!=IntPtr.Zero) { TerminateJobObject(duplicate,93); CloseHandle(duplicate); }
+   if(leaf!=IntPtr.Zero) { if(leafOwned && WaitForSingleObject(leaf,0)==258) { TerminateProcess(leaf,93); WaitForSingleObject(leaf,5000); } CloseHandle(leaf); }
+   DisposeProc(ref parent);
+  }
+ }
+ static void TreeChild(string file) {
+  Proc p=Spawn(new string[]{"hold"},IntPtr.Zero,IntPtr.Zero);
+  try { AtomicWitness(file,p.pid.ToString()); Thread.Sleep(30000); }
+  finally { DisposeProc(ref p); }
+ }
+ static void CrashOwner(string file) {
+  IntPtr j=Job(); Proc p=new Proc();
+  try {
+   p=Spawn(new string[]{"hold"},j,IntPtr.Zero);
+   AtomicWitness(file,p.pid.ToString()+" "+j.ToInt64().ToString());
+   Thread.Sleep(30000);
+  } finally { CloseHandle(j); DisposeProc(ref p); }
+ }
+ static Dictionary<string,object> OwnerDeathTest(string root) {
+  Stopwatch elapsed=Stopwatch.StartNew();
+  Proc owner=new Proc(); IntPtr leaf=IntPtr.Zero,borrowed=IntPtr.Zero; bool leafOwned=false;
+  try {
+   string file=Path.Combine(root,"owner.txt");
+   owner=Spawn(new string[]{"owner",file},IntPtr.Zero,IntPtr.Zero);
+   string[] parts=WaitWitness(file,owner.process).Split(' ');
+   leaf=OpenProcess(0x101001,false,uint.Parse(parts[0])); Check(leaf!=IntPtr.Zero,"OPEN_OWNER_LEAF");
+   IntPtr source=new IntPtr(long.Parse(parts[1]));
+   Check(DuplicateHandle(owner.process,source,GetCurrentProcess(),out borrowed,4,false,0),"BORROW_JOB_QUERY_HANDLE");
+   bool inside; Check(IsProcessInJob(leaf,borrowed,out inside),"OWNER_LEAF_MEMBERSHIP"); Need(inside,"OWNER_LEAF_WRONG_JOB"); leafOwned=true;
+   Check(CloseHandle(borrowed),"CLOSE_BORROWED_HANDLE"); borrowed=IntPtr.Zero;
+   Need(WaitForSingleObject(leaf,0)==258,"OWNER_LEAF_NOT_ALIVE");
+   Need(elapsed.ElapsedMilliseconds<20000,"OWNER_TRIGGER_TOO_LATE");
+   long trigger=elapsed.ElapsedMilliseconds;
+   Check(TerminateProcess(owner.process,97),"TERMINATE_OWNED_OWNER");
+   Need(WaitForSingleObject(owner.process,5000)==0 && WaitForSingleObject(leaf,5000)==0,"OWNER_DEATH_DID_NOT_CLEAN_LEAF");
+   return new Dictionary<string,object>{{"trigger_elapsed_ms",trigger},{"completion_elapsed_ms",elapsed.ElapsedMilliseconds},{"natural_expiry_ms",30000},{"leaf_exact_owner_job",true},{"borrowed_handle_closed_before_owner_death",true},{"owner_forcibly_terminated",true},{"leaf_exited_after_owner_death",true},{"passed",true}};
+  } finally {
+   if(borrowed!=IntPtr.Zero) CloseHandle(borrowed);
+   DisposeProc(ref owner);
+   if(leaf!=IntPtr.Zero) { if(leafOwned && WaitForSingleObject(leaf,0)==258) { TerminateProcess(leaf,94); WaitForSingleObject(leaf,5000); } CloseHandle(leaf); }
+  }
+ }
+ public static int Main(string[] args) {
+  try {
+   if(args.Length==0) throw new InvalidOperationException("MODE_REQUIRED");
+   if(args[0]=="hold") { Thread.Sleep(30000); return 0; }
+   if(args[0]=="app") return AppChild(args);
+   if(args[0]=="tree") { TreeChild(args[1]); return 0; }
+   if(args[0]=="owner") { CrashOwner(args[1]); return 0; }
+   Need(args[0]=="coordinate","UNKNOWN_MODE");
+   string root=Path.GetDirectoryName(Exe);
+   Dictionary<string,object> r=new Dictionary<string,object>{{"schema","generic-windows-boundary-probe/v2"},{"os_version_compatibility_report",Environment.OSVersion.Version.ToString()},{"x64",Environment.Is64BitProcess},{"native_pilot_executed",false}};
+   try {
+    Need(Environment.Is64BitProcess,"X64_REQUIRED");
+    bool pass=true;
+    string[] names={"appcontainer_access_denial","job_last_handle_and_descendant_cleanup","job_cleanup_after_owner_termination"};
+    Func<string,Dictionary<string,object>>[] tests={AppTest,JobTreeTest,OwnerDeathTest};
+    for(int i=0;i<tests.Length;i++) {
+     Context=new Dictionary<string,object>();
+     try { r[names[i]]=tests[i](root); }
+     catch(Exception e) {
+      pass=false;
+      Dictionary<string,object> failure=new Dictionary<string,object>{{"passed",false},{"error_type",e.GetType().Name},{"error",e.Message},{"context",Context}};
+      if(e is Win32Exception) failure["win32_error"]=((Win32Exception)e).NativeErrorCode;
+      r[names[i]]=failure;
+     }
+    }
+    r["result"]=pass?"GENERIC_BOUNDARY_TESTS_PASSED_NOT_APPLICATION_QUALIFICATION":"GENERIC_BOUNDARY_TESTS_FAILED";
+    Console.WriteLine(Serialize(r)); return pass?0:2;
+   } catch(Exception e) {
+    r["result"]="GENERIC_BOUNDARY_TESTS_FAILED"; r["error_type"]=e.GetType().Name; r["error"]=e.Message; r["context"]=Context; if(e is Win32Exception) r["win32_error"]=((Win32Exception)e).NativeErrorCode;
+    Console.WriteLine(Serialize(r)); return 2;
+   }
+  } catch(Exception e) {
+   Console.Error.WriteLine(e.GetType().Name+":"+e.Message); return 4;
+  }
+ }
+}
+
