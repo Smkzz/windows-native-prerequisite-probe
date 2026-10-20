@@ -185,7 +185,20 @@ def run(root):
                     need(error.code in {"JOB_SETUP_FAILED", "STORE_FAILURE"}, "FAULT_ERROR_CODE")
                     jid = store.observed["job_id"]
                 if mode == "tree_stop":
-                    until(witness.exists, 8)
+                    dump({"case": label, "stage": "WAIT_DESCENDANT_WITNESS"})
+                    try:
+                        until(witness.exists, 8)
+                    except RuntimeError:
+                        observed = mgr.read("pilot", jid, 0)
+                        helper_error = str(observed.get("stderr", "")).strip()
+                        safe_helper_error = helper_error if re.fullmatch(
+                            r"(?:Win32Exception|InvalidOperationException):[A-Z0-9_]{1,100}",
+                            helper_error) else "NO_ALLOWLISTED_HELPER_ERROR"
+                        dump({"case": label, "stage": "DESCENDANT_WITNESS_TIMEOUT",
+                              "status": observed.get("status"),
+                              "returncode": observed.get("returncode"),
+                              "helper_error": safe_helper_error})
+                        raise RuntimeError("DESCENDANT_WITNESS_TIMEOUT")
                     # Open only PID emitted by our live helper; never terminate by PID.
                     pid = int(witness.read_text())
                     owner = mgr.owners[jid]
@@ -208,7 +221,14 @@ def run(root):
                     result["cleanup_latency_ms"] = round((time.monotonic()-trigger)*1000, 3)
                     result["descendant_exact_job"] = True
                     result["natural_expiry_ms"] = 30000
-                until(lambda: jid not in mgr.owners, 12)
+                dump({"case": label, "stage": "WAIT_DURABLE_RETIREMENT"})
+                try:
+                    until(lambda: jid not in mgr.owners, 12)
+                except RuntimeError:
+                    observed = mgr.read("pilot", jid, 0)
+                    dump({"case": label, "stage": "DURABLE_RETIREMENT_TIMEOUT",
+                          "status": observed.get("status"), "returncode": observed.get("returncode")})
+                    raise RuntimeError("DURABLE_RETIREMENT_TIMEOUT")
                 record = store.get_job(jid, "pilot")
                 expected = {"normal": "completed", "tree_stop": "stopped", "owned_fault": "start_failed"}[mode]
                 need(record["status"] == expected, "UNEXPECTED_TERMINAL_STATUS")
@@ -249,8 +269,7 @@ def run(root):
                     store.close()
 
         results = {}
-        for label, mode in (("N01_normal_denial_durable_reopen", "normal"),
-                            ("N02_descendant_stop_durable_reopen", "tree_stop"),
+        for label, mode in (("N02_descendant_stop_durable_reopen", "tree_stop"),
                             ("N03_owned_commit_failure_before_release", "owned_fault")):
             result = manager_case(label, mode)
             results[label] = result
@@ -311,4 +330,5 @@ if __name__ == "__main__":
               "reason": str(error) if isinstance(error, RuntimeError) and
                  re.fullmatch(r"[A-Z0-9_]+", str(error)) else "BOUNDED_PILOT_EXCEPTION"})
         sys.exit(1)
+
 

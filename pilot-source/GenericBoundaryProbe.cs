@@ -93,8 +93,8 @@ public static class GenericBoundaryProbe {
   try {
    uint flags=0x08000000|0x4|0x400;
    string system=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-   string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-   Need(!String.IsNullOrEmpty(local) && Directory.Exists(local),"LOADED_LOCALAPPDATA_REQUIRED");
+   string local=Environment.GetEnvironmentVariable("LOCALAPPDATA");
+   Need(!String.IsNullOrEmpty(local),"EXPLICIT_LOCALAPPDATA_REQUIRED");
    string environment="LOCALAPPDATA="+local+"\0PATH="+system+"\\System32\0SystemRoot="+system+"\0TEMP="+Path.GetDirectoryName(Exe)+"\\out\0WINDIR="+system+"\0\0";
    envmem=Marshal.StringToHGlobalUni(environment);
    if(containerSid!=IntPtr.Zero) {
@@ -304,4 +304,5 @@ public static class GenericBoundaryProbe {
   }
  }
 }
+
 

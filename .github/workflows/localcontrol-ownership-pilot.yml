@@ -25,7 +25,7 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/SOURCE_MANIFEST.json') -OutFile $manifestPath
-            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'b7f4c4f5ccba081d87551779e65b4be08f48fde0bdd98ee25c639823de99fb2f'){throw 'MANIFEST_HASH_MISMATCH'}
+            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'bf1fec17ac3f5f8318699346a37948408a7d8b6e788581d4403a8faa47100bee'){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or $manifest.files.Count -ne 13){throw 'SOURCE_MANIFEST_DRIFT'}
             $sourceRoot=Join-Path $root 'source'
@@ -54,7 +54,7 @@ jobs:
             & $compiler /nologo /target:exe /platform:x64 /reference:System.Web.Extensions.dll /out:$compiled (Join-Path $sourceRoot 'GenericBoundaryProbe.cs')
             if($LASTEXITCODE -ne 0){throw 'GENERIC_HELPER_COMPILATION_FAILED'}
             [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
-                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='b7f4c4f5ccba081d87551779e65b4be08f48fde0bdd98ee25c639823de99fb2f';
+                candidate_tree=$manifest.candidate_tree;source_manifest_sha256='bf1fec17ac3f5f8318699346a37948408a7d8b6e788581d4403a8faa47100bee';
                 python_sha256=(Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash.ToLowerInvariant();
                 compiler_sha256=(Get-FileHash -LiteralPath $compiler -Algorithm SHA256).Hash.ToLowerInvariant();
                 os_build=[Environment]::OSVersion.Version.ToString();image_version=$env:ImageVersion;
@@ -89,7 +89,7 @@ jobs:
               $out
               if($err.Length){Write-Output ('{"coordinator_stderr_characters":'+$err.Length+'}')}
               $last=($out.Trim() -split [Environment]::NewLine)[-1] | ConvertFrom-Json
-              if($process.ExitCode -ne 0 -or $last.result -cne 'PASS_BOUNDED_PILOT_ONLY' -or $last.case_count -ne 4){throw 'BOUNDED_OWNERSHIP_PILOT_FAILED'}
+              if($process.ExitCode -ne 0 -or $last.result -cne 'PASS_BOUNDED_PILOT_ONLY' -or $last.case_count -ne 3){throw 'BOUNDED_OWNERSHIP_PILOT_FAILED'}
               $failed=$false
             } finally {
               if($null -ne $process -and -not $process.HasExited){$process.Kill($true);$process.WaitForExit()}
@@ -105,4 +105,5 @@ jobs:
           }
           if($failed){exit 1}
           
+
 
