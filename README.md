@@ -1,14 +1,16 @@
-# Windows native prerequisite probe
+# Generic Windows native boundary probe
 
-Prepared locally only. No repository has been created and no workflow has run.
+A manual-only, five-minute probe on the free standard GitHub-hosted windows-2025 runner. No application source, private configuration, credentials, third-party actions, checkout, cache or artifact uploads are included. Token permissions are empty (GitHub still supplies metadata-read permission).
 
-This proposed public repository contains only this README and an original inline GitHub Actions workflow. It contains no application source, deployed settings, production credentials, state databases, runtime bundles or private evidence.
+The original prerequisite run succeeded. This extension performs real Windows calls:
 
-After explicit publication/dispatch approval, run the workflow manually on the standard windows-2025 runner. It has a five-minute timeout, no checkout/action dependencies, no secrets references, empty token permissions, no artifact uploads, caches, deployment steps or automatic triggers. Output is small JSON in the job log and summary. It creates and cleans one temporary file/directory, one empty Job Object, and one unique AppContainer profile only on the ephemeral hosted runner. It never launches an AppContainer process or application candidate. Cleanup failure fails the probe.
+- Launch a new helper with zero-capability AppContainer token, suspended first, assign its exact Job Object, verify the token/SID before resume, and verify the same token inside the child. A read-allowed synthetic file must succeed. A protected synthetic file must return Win32 ERROR_ACCESS_DENIED (5) for both read and write. The unrestricted coordinator must be able to access that same file. Only newly created fixture ACLs are adjusted.
+- Put a child and its descendant into one kill-on-close Job Object. Verify exact membership using handles, prove both survive closing a nonfinal job handle, then prove both exit after the last handle closes.
+- Let a synthetic owner create a separate kill-on-close job and child. Borrow a query handle only to verify exact membership, close that borrowed handle, terminate only the owned synthetic owner, and prove its child exits.
 
-The probe checks C: metadata and temporary write/read plus basic Windows API capability. A successful result is explicitly NOT native application qualification. The runner has network access to GitHub; it does not meet a whole-VM no-NIC rule. Before any later candidate run, its hosted-runner isolation contract and authority must be approved separately and genuine denial/ownership tests must pass.
+Only fixed helper modes execute. Children have a minimal environment, no inherited handles and no inherited GitHub tokens. Holding processes self-expire after 30 seconds. The coordinator uses bounded waits and cleans only exact owned fixture handles, profile and directory. The outer CI job has a five-minute timeout. Failed execution or cleanup fails the job; no success is inferred from mere process creation.
 
-Standard hosted runners in public repositories are currently free according to GitHub. Use no larger runners, cache/artifact storage or secrets. Do not publish private application code to obtain free execution. Private candidate testing would require verified included quota and a genuine no-overage control, or another approved free target; neither is verified here.
+These are generic environment tests, not application qualification. They do not prove application ownership persistence, request replay, database atomicity, full crash recovery, production rollback, or production OS parity. Network-denial testing is not included, and the hosted runner retains network access to GitHub. No application candidate or native pilot runs.
 
-No account billing/settings change, repository publication or workflow dispatch is authorized by this file.
+The public standard runner class is documented as free. Larger runners, paid services, billing changes, repository secrets and private source publication are outside scope.
 
