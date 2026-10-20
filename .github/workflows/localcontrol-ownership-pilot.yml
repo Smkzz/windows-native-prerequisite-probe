@@ -43,7 +43,12 @@ jobs:
                  (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256){throw 'SOURCE_BYTES_MISMATCH'}
             }
             $compiler=Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-            $python=(Get-Command python.exe -CommandType Application -ErrorAction Stop).Source
+            if(-not $env:RUNNER_TOOL_CACHE){throw 'INSTALLED_TOOL_CACHE_REQUIRED'}
+            $cache=[IO.Path]::GetFullPath($env:RUNNER_TOOL_CACHE)
+            $python=Join-Path $cache 'Python\3.12.10\x64\python.exe'
+            $complete=Join-Path $cache 'Python\3.12.10\x64.complete'
+            if(-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $complete -PathType Leaf)){throw 'CACHED_PYTHON_31210_REQUIRED'}
+            if(((Get-Item -LiteralPath $python -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'PYTHON_ALIAS_OR_REPARSE_REFUSED'}
             if(-not (Test-Path -LiteralPath $compiler)){throw 'INSTALLED_COMPILER_REQUIRED'}
             $compiled=Join-Path $root 'compiled-helper.exe'
             & $compiler /nologo /target:exe /platform:x64 /reference:System.Web.Extensions.dll /out:$compiled (Join-Path $sourceRoot 'GenericBoundaryProbe.cs')
