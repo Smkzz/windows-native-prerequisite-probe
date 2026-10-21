@@ -6,7 +6,7 @@ from localcontrol.v060.registry import RegistrySnapshot,Workspace,Collection
 
 def test_contract_preserves_all_v050_tools():
     r=validate_contract()
-    assert r['v050_tools']==20 and r['v060_total']==34 and r['total']==45 and not r['control_plane_exposed']
+    assert r['v050_tools']==21 and r['v060_total']==35 and r['total']==46 and not r['control_plane_exposed']
 
 def test_operator_registry_writes_not_mcp():
     assert {'workspace_add','workspace_remove','collection_add','collection_remove','usage_import'} <= OPERATOR_ONLY

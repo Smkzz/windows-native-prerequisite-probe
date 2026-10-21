@@ -21,7 +21,8 @@ def test_health_recovery_timeout():
 def test_health_high_error_warning():
     r=HealthBook().add(sample(unexpected_errors_delta=6,calls_delta=100));assert 'HIGH_UNEXPECTED_ERROR_RATE' in r['warnings']
 
-def test_health_summary_accumulates():
+def test_health_summary_accumulates(monkeypatch):
+    monkeypatch.setattr('localcontrol.v060.health.time.time_ns',lambda:2)
     h=HealthBook();h.add(sample());h.add(sample(time_ns=2,owned_jobs_running=3));s=h.summary();assert s['healthy'] and s['samples']==2 and s['max_owned_jobs_running']==3
 
 def event(**kw):

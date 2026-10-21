@@ -1,4 +1,5 @@
 from pathlib import Path
+import ntpath
 import pytest
 from localcontrol.v060.core import Rejected
 from localcontrol.v060.executor import MoveExecutor
@@ -20,6 +21,16 @@ class FakeAdapter:
         return TreeSnapshot(path,t.root_identity,t.volume_id,t.entries)
     def exists(self,path):return path in self.trees
     def parent_volume(self,path):return 'vol1' if path.startswith('C:') else 'vol2'
+    def validate_paths(self,source,destination,source_authority_root,destination_collection_root,*,source_may_be_missing=False):
+        # Model only the exact owned in-memory paths; this is no native filesystem attestor.
+        values=(source,destination,source_authority_root,destination_collection_root)
+        assert all(type(value) is str for value in values)
+        actual=tuple(ntpath.normcase(ntpath.normpath(value)) for value in values)
+        expected=tuple(ntpath.normcase(value) for value in (r'C:\Old\Proj',r'C:\Projects\Proj',r'C:\Old\Proj',r'C:\Projects'))
+        assert actual==expected
+        assert type(source_may_be_missing) is bool
+        if not source_may_be_missing:
+            assert self.exists(source)
     def rename(self,source,destination):
         if self.fail_rename:raise OSError('locked')
         t=self.trees.pop(source);self.trees[destination]=TreeSnapshot(destination,t.root_identity,t.volume_id,t.entries)

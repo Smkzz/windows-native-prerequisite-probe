@@ -483,20 +483,22 @@
     {
       "path": "pilot-source/tests/v060/test_contract_admin.py",
       "bytes": 2251,
-      "sha256": "d4f1073cc96a3bd46bbf6e0b8a22489f6802810322aab623d63509ebbe5cfe48",
+      "sha256": "45239d2910e0946d126ffdfedb521d8ff1a0520979f2af0b1a5749f2a0d2d13f",
       "runner_fixture": true,
       "fixture_base_candidate_path": "tests/v060/test_contract_admin.py",
       "fixture_base_sha256": "45f52350cb785e376d62cec29a40cee7d55470c13cea90d1eb1a8f0e3fdf32a2",
-      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060"
+      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060",
+      "runner_fixture_contract_correction": true
     },
     {
       "path": "pilot-source/tests/v060/test_discovery_health_store.py",
-      "bytes": 2076,
-      "sha256": "fe9914987ccff9d545f4d5443f9ea114a1063b0d582f7911357988ad9e778ba9",
+      "bytes": 2162,
+      "sha256": "d8ff206bcf9cf5576a974bb690e40fbaee159896490d50e7cab88a96a5885a28",
       "runner_fixture": true,
       "fixture_base_candidate_path": "tests/v060/test_discovery_health_store.py",
       "fixture_base_sha256": "c335ada4e1bd11f519902c2e3e5f297fb1ce72955929f1f3c8011abcbfc15615",
-      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060"
+      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060",
+      "runner_fixture_contract_correction": true
     },
     {
       "path": "pilot-source/tests/v060/test_discovery_isolation.py",
@@ -509,21 +511,23 @@
     },
     {
       "path": "pilot-source/tests/v060/test_health_usage.py",
-      "bytes": 4050,
-      "sha256": "e50b2a794d22cf28c191a7f4b66e64b440a0004f6bfe8809e043510269d5d815",
+      "bytes": 4135,
+      "sha256": "2e18d43c579c6abc06654e5d03a7dca7c361ac01ba46e046c4bbe51a16b1e3b3",
       "runner_fixture": true,
       "fixture_base_candidate_path": "tests/v060/test_health_usage.py",
       "fixture_base_sha256": "40d3db83909e947193fb04809fa4df7426b0a31eb2c1dca6dd2a6ca51d8029b9",
-      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060"
+      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060",
+      "runner_fixture_contract_correction": true
     },
     {
       "path": "pilot-source/tests/v060/test_journal_executor.py",
-      "bytes": 5342,
-      "sha256": "71df309dbbfd727945d2d59685ca0b7164bd54b04a9814057f881a509b3e0b4f",
+      "bytes": 6092,
+      "sha256": "feca36d2203a42735267f5e0b30b7ad08282fcc80219036970f920adaabeb101",
       "runner_fixture": true,
       "fixture_base_candidate_path": "tests/v060/test_journal_executor.py",
       "fixture_base_sha256": "2dc2a776b40585a5a2f846d9766755e119219c8614f599c7d9bf61942d0378a6",
-      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060"
+      "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060",
+      "runner_fixture_contract_correction": true
     },
     {
       "path": "pilot-source/tests/v060/test_leases.py",

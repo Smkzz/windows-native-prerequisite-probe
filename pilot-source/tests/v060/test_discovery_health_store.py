@@ -18,7 +18,8 @@ def test_discovery_skips_system_at_drive_root():
 
 def test_discovery_does_not_skip_normal_project():assert not should_skip_dir('ww2game',0)
 
-def test_health_store_persists(tmp_path):
+def test_health_store_persists(tmp_path,monkeypatch):
+    monkeypatch.setattr('localcontrol.v060.health.time.time_ns',lambda:1)
     p=tmp_path/'h.db';h=DurableHealthStore(p);h.ingest(sample());h.close();h=DurableHealthStore(p);s=h.summary();assert s['healthy'] and s['samples']==1;h.close()
 
 def test_health_store_replay(tmp_path):

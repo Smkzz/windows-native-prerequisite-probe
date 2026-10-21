@@ -76,7 +76,7 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/LEGACY_IMPORT_SOURCE_MANIFEST.json') -OutFile $manifestPath
-            $manifestHash='b53b23a500f0f8cf4451f73a0510877db385e8de8576d52b0532f1baad2703e0'
+            $manifestHash='f35cc7536b1eb10968adb509a7308f03bd9729e13a429b003915f5439a96dac4'
             if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $manifestHash){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or
