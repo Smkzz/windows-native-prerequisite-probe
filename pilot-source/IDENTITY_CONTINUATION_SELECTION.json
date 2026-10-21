@@ -1,0 +1,37 @@
+{
+  "schema": "localcontrol-identity-continuation-selection/v1",
+  "nodes": [
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_same_and_missing_and_replaced",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_tree_and_watch_divergence_no_git",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_synthetic_git_classifications",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_classify_rejects_invalid_records",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_tampered_identity_record_refused_on_resume",
+    "tests/v070/test_continuation.py::Continuation::test_checkpoint_accepts_structured_manifest",
+    "tests/v070/test_continuation.py::Continuation::test_legacy_checkpoint_shape_still_accepted",
+    "tests/v070/test_continuation.py::Continuation::test_checkpoint_rejects_unknown_and_malformed_notes",
+    "tests/v070/test_continuation.py::Continuation::test_handoff_environment_is_one_call_resume_state",
+    "tests/v070/test_continuation.py::Continuation::test_handoff_rejects_unknown_include",
+    "tests/v070/test_continuation.py::Continuation::test_environment_usage_is_bounded"
+  ],
+  "expected_collected_nodes": [
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_same_and_missing_and_replaced",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_tree_and_watch_divergence_no_git",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_synthetic_git_classifications",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_classify_rejects_invalid_records",
+    "tests/v080/test_identity.py::IdentityClassificationTests::test_tampered_identity_record_refused_on_resume",
+    "tests/v070/test_continuation.py::Continuation::test_checkpoint_accepts_structured_manifest",
+    "tests/v070/test_continuation.py::Continuation::test_legacy_checkpoint_shape_still_accepted",
+    "tests/v070/test_continuation.py::Continuation::test_checkpoint_rejects_unknown_and_malformed_notes",
+    "tests/v070/test_continuation.py::Continuation::test_handoff_environment_is_one_call_resume_state",
+    "tests/v070/test_continuation.py::Continuation::test_handoff_rejects_unknown_include",
+    "tests/v070/test_continuation.py::Continuation::test_environment_usage_is_bounded"
+  ],
+  "expected_count": 11,
+  "selected_declarations": 11,
+  "modules": 2,
+  "expected_ordinary_tmp_path_calls": 0,
+  "prior_passes_repeated": 0,
+  "candidate_tests_unchanged": true,
+  "excluded_git_repository_lifecycle": true,
+  "fixture": "existing AppContainer-shaped Facade with FakeBackend; no native worker or provider activation"
+}
