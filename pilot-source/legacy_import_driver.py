@@ -112,7 +112,8 @@ def selected_regressions(root):
     import pytest
     selection=json.loads((SOURCE/"LEGACY_IMPORT_SELECTION.json").read_text())
     wanted=selection["nodes"]
-    need(len(wanted)==selection["expected_count"]==109 and len(set(wanted))==109,
+    need(len(wanted)==selection["selected_declarations"]==109 and len(set(wanted))==109
+         and len(selection["expected_collected_nodes"])==selection["expected_count"]==112,
          "FIXED_REGRESSION_SELECTION_REQUIRED")
     class Receipt:
         def __init__(self):
@@ -129,7 +130,7 @@ def selected_regressions(root):
             return path
         def pytest_collection_finish(self,session):
             self.collected=[item.nodeid for item in session.items]
-            need(sorted(self.collected)==sorted(wanted),"REGRESSION_COLLECTION_DRIFT")
+            need(sorted(self.collected)==sorted(selection["expected_collected_nodes"]),"REGRESSION_COLLECTION_DRIFT")
         def pytest_runtest_logreport(self,report):
             if report.failed:
                 self.failed.add(report.nodeid)
@@ -150,14 +151,16 @@ def selected_regressions(root):
     code=pytest.main(["-q","--capture=sys","-p","no:cacheprovider","-c",
         str(root/"control"/"pytest.ini"),"--rootdir",str(SOURCE),"--basetemp",
         str(root/"regression-temp"),*wanted],plugins=[receipt])
-    result={"exit_code":code,"collected":len(receipt.collected),"passed":len(receipt.passed),
+    result={"exit_code":code,"collected":len(receipt.collected),
+            "collection_missing":sorted(set(selection["expected_collected_nodes"])-set(receipt.collected))[:16],
+            "collection_unexpected":sorted(set(receipt.collected)-set(selection["expected_collected_nodes"]))[:16],"passed":len(receipt.passed),
             "failed":sorted(receipt.failed),"skipped":sorted(receipt.skipped),
             "failure_reports":receipt.failure_reports[:16],
             "failure_reports_omitted":max(0,len(receipt.failure_reports)-16),
             "ordinary_tmp_path_calls":receipt.ordinary_tmp_paths,
             "expected_ordinary_tmp_path_calls":selection["expected_ordinary_tmp_path_calls"],
             "runner_import_path_correction_only":True,"numbered_false_tmp_path_fixture":True,"native_api_mocks":"EXISTING_UNIT_TEST_SEAMS_ONLY"}
-    result["all_passed"]=(code==0 and len(receipt.passed)==109 and not receipt.failed and not receipt.skipped and receipt.ordinary_tmp_paths==selection["expected_ordinary_tmp_path_calls"])
+    result["all_passed"]=(code==0 and len(receipt.passed)==112 and not receipt.failed and not receipt.skipped and receipt.ordinary_tmp_paths==selection["expected_ordinary_tmp_path_calls"])
     return result
 
 def child(root,phase):
@@ -228,7 +231,7 @@ def coordinate(root):
     passed=regression["all_passed"]
     dump({"schema":"localcontrol-legacy-import-regression/v1",
           "result":"PASS_LEGACY_IMPORT_REGRESSION_ONLY" if passed else "FAIL_SCOPED_LEGACY_IMPORT",
-          "selected_regression_tests":109,"selected_modules":9,"phase_passes":{"regression":passed},
+          "selected_regression_tests":112,"selected_modules":9,"phase_passes":{"regression":passed},
           "runner_import_path_correction_only":True,"numbered_false_tmp_path_fixture":True,"candidate_source_changed":False,
           "provider_activated":False,"real_winfs_repeated":False,"full_regression":False,
           "production_activation_authorized":False})
