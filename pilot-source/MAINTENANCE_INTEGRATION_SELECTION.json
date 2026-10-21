@@ -1,0 +1,34 @@
+{
+  "schema": "localcontrol-maintenance-integration-selection/v1",
+  "nodes": [
+    "tests/test_v060_integration.py::V060Integration::test_all_v060_mutations_require_request_id_at_mcp_boundary",
+    "tests/test_v060_integration.py::V060Integration::test_catalog_preserves_22_plus_19_and_registry_is_model_read_only",
+    "tests/test_v060_integration.py::V060Integration::test_registry_cannot_redefine_base_project_or_add_exec_authority",
+    "tests/test_v060_integration.py::V060Integration::test_operator_registry_publish_blocks_unresolved_move_state",
+    "tests/test_v060_integration.py::V060Integration::test_maintenance_begin_end_are_receipt_idempotent_and_freeze_mutations",
+    "tests/test_v060_integration.py::V060Integration::test_missing_request_id_fails_closed",
+    "tests/test_v060_integration.py::V060Integration::test_signed_move_commits_and_apply_replays_without_second_rename",
+    "tests/test_v060_integration.py::V060Integration::test_prechecked_crash_freezes_scope_then_new_lease_can_reconcile_after_expiry",
+    "tests/test_v060_integration.py::V060Integration::test_cleanup_uses_verified_lease_without_relaxing_context_binding",
+    "tests/test_v060_integration.py::V060Integration::test_collection_source_cannot_move_live_workspace_root_or_parent"
+  ],
+  "expected_collected_nodes": [
+    "tests/test_v060_integration.py::V060Integration::test_all_v060_mutations_require_request_id_at_mcp_boundary",
+    "tests/test_v060_integration.py::V060Integration::test_catalog_preserves_22_plus_19_and_registry_is_model_read_only",
+    "tests/test_v060_integration.py::V060Integration::test_registry_cannot_redefine_base_project_or_add_exec_authority",
+    "tests/test_v060_integration.py::V060Integration::test_operator_registry_publish_blocks_unresolved_move_state",
+    "tests/test_v060_integration.py::V060Integration::test_maintenance_begin_end_are_receipt_idempotent_and_freeze_mutations",
+    "tests/test_v060_integration.py::V060Integration::test_missing_request_id_fails_closed",
+    "tests/test_v060_integration.py::V060Integration::test_signed_move_commits_and_apply_replays_without_second_rename",
+    "tests/test_v060_integration.py::V060Integration::test_prechecked_crash_freezes_scope_then_new_lease_can_reconcile_after_expiry",
+    "tests/test_v060_integration.py::V060Integration::test_cleanup_uses_verified_lease_without_relaxing_context_binding",
+    "tests/test_v060_integration.py::V060Integration::test_collection_source_cannot_move_live_workspace_root_or_parent"
+  ],
+  "expected_count": 10,
+  "selected_declarations": 10,
+  "modules": 1,
+  "expected_ordinary_tmp_path_calls": 0,
+  "prior_passes_repeated": 0,
+  "candidate_tests_unchanged": true,
+  "fixture": "new temporary synthetic live/external/collection scopes, FakeBackend and fake move adapter, no native rename"
+}
