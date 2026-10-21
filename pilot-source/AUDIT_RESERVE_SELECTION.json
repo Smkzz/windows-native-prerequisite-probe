@@ -1,0 +1,41 @@
+{
+  "schema": "localcontrol-audit-reserve-selection/v1",
+  "nodes": [
+    "tests/test_audit_reserve.py::AuditReserveCase::test_routine_admission_denied_but_finish_essential",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_finish_allowed_at_row_cap",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_essential_overflow_is_bounded",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_reclamation_uses_essential_lane",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_capacity_snapshot_reports_reserve",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_rotation_backoff_is_bounded",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_recovery_clears_rotation_failure",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_external_rotation_cancels_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_corruption_remains_fail_closed_through_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_owed_cache_does_not_survive_rollback",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_busy_checkpoint_does_not_open_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_unknown_rotation_failure_fails_closed",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_stale_rotation_failure_clears_in_snapshot"
+  ],
+  "expected_count": 13,
+  "selected_declarations": 13,
+  "expected_collected_nodes": [
+    "tests/test_audit_reserve.py::AuditReserveCase::test_routine_admission_denied_but_finish_essential",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_finish_allowed_at_row_cap",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_essential_overflow_is_bounded",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_reclamation_uses_essential_lane",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_capacity_snapshot_reports_reserve",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_rotation_backoff_is_bounded",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_recovery_clears_rotation_failure",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_external_rotation_cancels_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_corruption_remains_fail_closed_through_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_owed_cache_does_not_survive_rollback",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_busy_checkpoint_does_not_open_backoff",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_unknown_rotation_failure_fails_closed",
+    "tests/test_audit_reserve.py::AuditReserveCase::test_stale_rotation_failure_clears_in_snapshot"
+  ],
+  "modules": 1,
+  "expected_ordinary_tmp_path_calls": 0,
+  "prior_passes_repeated": 0,
+  "excluded_external_script_node": "tests/test_audit_reserve.py::AuditReserveCase::test_external_script_rotates_live_store",
+  "candidate_tests_unchanged": true,
+  "tmp_directories": "unittest TemporaryDirectory under owned TEMP"
+}
