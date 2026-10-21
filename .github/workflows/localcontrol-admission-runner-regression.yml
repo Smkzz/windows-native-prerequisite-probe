@@ -130,7 +130,7 @@ jobs:
             $null=Run-Captured $python @('-I','-B','-m','venv',$venv) 30 'VENV'
             $venvPython=Join-Path $venv 'Scripts\python.exe'
             Plain-Path $venvPython
-            $null=Run-Captured $venvPython @('-I','-B','-m','pip','--isolated','install','--no-index','--no-deps','--only-binary=:all:','--require-hashes','--no-cache-dir','--find-links',$wheelRoot,'-r',(Join-Path $sourceRoot 'requirements.lock')) 45 'OFFLINE_INSTALL'
+            $null=Run-Captured $venvPython @('-I','-B','-m','pip','--isolated','install','--no-index','--no-deps','--only-binary=:all:','--require-hashes','--no-cache-dir','--find-links',$wheelRoot,'-r',(Join-Path $sourceRoot 'requirements.lock')) 75 'OFFLINE_INSTALL'
             $null=Run-Captured $venvPython @('-I','-B','-m','pip','--isolated','check','--disable-pip-version-check') 15 'DEPENDENCY_CHECK'
             [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
               candidate_tree=$manifest.candidate_tree;source_manifest_sha256=$manifestHash;
