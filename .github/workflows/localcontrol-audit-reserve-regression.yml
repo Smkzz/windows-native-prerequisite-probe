@@ -143,7 +143,7 @@ jobs:
             $last=($out.Trim() -split [Environment]::NewLine)[-1] | ConvertFrom-Json
             if($last.result -cne 'PASS_AUDIT_RESERVE_REGRESSION_ONLY' -or
                $last.selected_regression_tests -ne 13 -or $last.selected_modules -ne 1 -or
-               $last.phase_passes.regression -ne $true -or $last.runner_import_path_correction_only -ne $true -or $last.numbered_false_tmp_path_fixture -ne $true -or
+               $last.phase_passes.regression -ne $true -or $last.runner_import_path_correction_only -ne $false -or $last.numbered_false_tmp_path_fixture -ne $true -or
                $last.provider_activated -ne $false){throw 'BOUNDED_AUDIT_RESERVE_FAILED'}
             $failed=$false
           } finally {
