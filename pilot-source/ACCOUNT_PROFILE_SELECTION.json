@@ -1,0 +1,26 @@
+{
+  "schema": "localcontrol-account-profile-selection/v1",
+  "nodes": [
+    "tests/test_windows_job_accounting.py::WindowsJobAccountingTests::test_stats_reports_completion_port_and_process_counts",
+    "tests/test_windows_job_accounting.py::WindowsJobAccountingTests::test_stats_api_error_raises_and_caller_snapshot_fails_closed",
+    "tests/v110/test_config.py::ConfigTests::test_profile_overrides_merge_with_defaults",
+    "tests/v110/test_config.py::ConfigTests::test_profile_validation_failures",
+    "tests/v110/test_config.py::ConfigTests::test_default_profiles_never_expose_danger"
+  ],
+  "expected_collected_nodes": [
+    "tests/test_windows_job_accounting.py::WindowsJobAccountingTests::test_stats_reports_completion_port_and_process_counts",
+    "tests/test_windows_job_accounting.py::WindowsJobAccountingTests::test_stats_api_error_raises_and_caller_snapshot_fails_closed",
+    "tests/v110/test_config.py::ConfigTests::test_profile_overrides_merge_with_defaults",
+    "tests/v110/test_config.py::ConfigTests::test_profile_validation_failures",
+    "tests/v110/test_config.py::ConfigTests::test_default_profiles_never_expose_danger"
+  ],
+  "expected_count": 5,
+  "selected_declarations": 5,
+  "modules": 2,
+  "expected_ordinary_tmp_path_calls": 0,
+  "prior_passes_repeated": 0,
+  "candidate_tests_unchanged": true,
+  "native_cases": 2,
+  "pure_profile_cases": 3,
+  "provider_constructors_selected": false
+}
