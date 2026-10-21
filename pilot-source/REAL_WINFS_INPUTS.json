@@ -1,0 +1,1511 @@
+{
+  "schema": "localcontrol-real-winfs-exact-artifacts/v1",
+  "node": {
+    "url": "https://nodejs.org/dist/v24.18.0/node-v24.18.0-win-x64.zip",
+    "bytes": 37176245,
+    "sha256": "0ae68406b42d7725661da979b1403ec9926da205c6770827f33aac9d8f26e821",
+    "node_exe_sha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+    "filename": "node-v24.18.0-win-x64.zip",
+    "version": "24.18.0",
+    "same_as_installed_node_bytes": true
+  },
+  "upstream": {
+    "url": "https://codeload.github.com/leonovee/winfs-mcp/tar.gz/07672940af20bb30222c4ae161e13c2288d4f38a",
+    "bytes": 739117,
+    "sha256": "6f28e2616b22a5b0cd58b9558177bbb5c2d839854b839fd6ecca0d2add08453c",
+    "revision": "07672940af20bb30222c4ae161e13c2288d4f38a",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 1093,
+        "sha256": "117a687cd0f22265cce091d229233079daa59ec2184bbff22427dac88d821b6c"
+      },
+      {
+        "path": "package-lock.json",
+        "bytes": 102457,
+        "sha256": "502dc3e03ca1dc6b18dfb95333935836dfc11904219a0712793e69ddb4ed9fd4"
+      },
+      {
+        "path": "package.json",
+        "bytes": 1060,
+        "sha256": "948f077fc844df63a58d4cbad1259d94546f91926006a8af19beab6401f21db4"
+      },
+      {
+        "path": "src/core/allowed_roots.ts",
+        "bytes": 5762,
+        "sha256": "3f91936282c97dc7f2b73c863144e0e74ce5fc65032ecbc6d87884a630dac3ed"
+      },
+      {
+        "path": "src/core/atomic_write.ts",
+        "bytes": 3655,
+        "sha256": "8ef14911034deeae3a95de78f4826a106df60b06172d460389ae24eb01fb879a"
+      },
+      {
+        "path": "src/core/audit.ts",
+        "bytes": 7681,
+        "sha256": "9acfdb0f7c24149d127feab86b7c8b18fb1ab5139e64233c81e56e18d757ba00"
+      },
+      {
+        "path": "src/core/config.ts",
+        "bytes": 10978,
+        "sha256": "b63ca963ef7ee8feb3eb9acc9b512b73118ac4553559eee29ccb799b87c580d4"
+      },
+      {
+        "path": "src/core/config_watch.ts",
+        "bytes": 6048,
+        "sha256": "db096e0861be6ec40502521f87c30226aa64f2f97252d8725ef57fe567dd847b"
+      },
+      {
+        "path": "src/core/errors.ts",
+        "bytes": 3506,
+        "sha256": "9dee825754800b9eabf2d8e6115259d26909e2718f704950e7379fc5b645b2b5"
+      },
+      {
+        "path": "src/core/exec_hints.ts",
+        "bytes": 2328,
+        "sha256": "4679e3d9d58575837788e7bb45530a74afce24a4c40194368318dce8cffad674"
+      },
+      {
+        "path": "src/core/exec_safety.ts",
+        "bytes": 19336,
+        "sha256": "a92c153d68e619a68adf31a5a0dc4e6770a5e4a15f8ae2d4d274931e3f9bce8c"
+      },
+      {
+        "path": "src/core/git_safety.ts",
+        "bytes": 7596,
+        "sha256": "311d070a0a53eef4365b7a72287649b2bc4cad02fc0865a61502a48b0048c9ea"
+      },
+      {
+        "path": "src/core/glob.ts",
+        "bytes": 5413,
+        "sha256": "8cf15533a38cce34d036f0ae6063f92f8b73cad8e05dda65d0f6707ec0b65efc"
+      },
+      {
+        "path": "src/core/powershell_resolver.ts",
+        "bytes": 2959,
+        "sha256": "fa92ab3fde28319314d3ec7b66daeff7d0fe32f30643960fcf14934b00e38cd4"
+      },
+      {
+        "path": "src/core/process_registry.ts",
+        "bytes": 19357,
+        "sha256": "f01f87e6be0cd98bdad3d5e9607b8ad19d73a73b514a748c70c7afc309b266ef"
+      },
+      {
+        "path": "src/core/roots_resolver.ts",
+        "bytes": 7630,
+        "sha256": "bc9de0714191bb6ed32ee8ce9f87d80635c94a9642b75d028b23a2494d2fb959"
+      },
+      {
+        "path": "src/core/ssh_resolver.ts",
+        "bytes": 1963,
+        "sha256": "a777c4f24a6e95b131e908ec3c050877157359d0bf3327bad53cd1734fda1a66"
+      },
+      {
+        "path": "src/core/timeouts.ts",
+        "bytes": 1994,
+        "sha256": "06b41f3b02b677ae13f3b255d99adc2587c23c5df75de48f253e465f9ea444c7"
+      },
+      {
+        "path": "src/core/tool_context.ts",
+        "bytes": 2410,
+        "sha256": "05186fb91d172e4815d61782fb8cb63222a16b727502290bd5a52ba2511ef34b"
+      },
+      {
+        "path": "src/core/tool_wrapper.ts",
+        "bytes": 5346,
+        "sha256": "6f038ca34c7e8f79d8e5f77bf1ef11410968134f53890d52c85685cb7a5530f8"
+      },
+      {
+        "path": "src/core/transport_log.ts",
+        "bytes": 5768,
+        "sha256": "0e5112676e21af62b43558952567f9d72c0e7dbcee26b2e8ac1a54bc1e15b1e3"
+      },
+      {
+        "path": "src/core/utf8.ts",
+        "bytes": 2002,
+        "sha256": "13910ba6f1b86070bef58807f618d9847a11e3ec1d10d4f472dada214485f4a1"
+      },
+      {
+        "path": "src/core/walk.ts",
+        "bytes": 3722,
+        "sha256": "df2747e4d983ce8e0a36937f1579fb80184fc39c072644ae569744a0babe1559"
+      },
+      {
+        "path": "src/index.ts",
+        "bytes": 5376,
+        "sha256": "4a6d3fb77b2b993f293ec8b7d32dae6f563b4e9d4a82de19310178b37429de7b"
+      },
+      {
+        "path": "src/schemas/common.ts",
+        "bytes": 708,
+        "sha256": "c9ee2ee2641d7a07d690ce67544aa5c8f9ee8a2b4bc9d795d1d81a06c21a1d94"
+      },
+      {
+        "path": "src/server.ts",
+        "bytes": 9826,
+        "sha256": "e62e14e30948e28fbd9baec551c1f6c6b96ae13e312917f66c38ff996630173f"
+      },
+      {
+        "path": "src/tools/editor/edit_file.ts",
+        "bytes": 15842,
+        "sha256": "9aaf33788310ca27344b06e061903e2b25f5a71a2a70da75b795c16684589ced"
+      },
+      {
+        "path": "src/tools/exec/execute_command.ts",
+        "bytes": 14482,
+        "sha256": "c5c4693f841235fcac35607b67bb2eebf36e27c478638c6739894749cd5136af"
+      },
+      {
+        "path": "src/tools/exec/run_pytest.ts",
+        "bytes": 8039,
+        "sha256": "63fcf2eb84cc11d5f874f129bfa15a9fbaf663fd27b36071912cba28a6221d5a"
+      },
+      {
+        "path": "src/tools/exec/run_python.ts",
+        "bytes": 9068,
+        "sha256": "eaa6732c70fb2bcd4325dc32c773bb981ff439ca407fafe7a69ea3a28e4c7064"
+      },
+      {
+        "path": "src/tools/file/read_media_file.ts",
+        "bytes": 7799,
+        "sha256": "25cabd660a5db1d91bfe6cdafdd3000389958c2ee6887c568852176b40473ccd"
+      },
+      {
+        "path": "src/tools/file/write_chunk.ts",
+        "bytes": 11816,
+        "sha256": "3bb1c8d6418f3315fd4e1788210e7e122329745d9f9914fa5e8bd8208284cb78"
+      },
+      {
+        "path": "src/tools/file/write_json.ts",
+        "bytes": 6641,
+        "sha256": "a8c019ec71a3a880f046a5b31df8a7172f8352ea0b8c0ccf3d4381ff7a05fe2a"
+      },
+      {
+        "path": "src/tools/fs/append.ts",
+        "bytes": 2977,
+        "sha256": "f922994bab898747cb35cd3518701256209e3cac925d8d619f8e583dc740529d"
+      },
+      {
+        "path": "src/tools/fs/copy.ts",
+        "bytes": 8839,
+        "sha256": "dc6af59e2987ddfde80a20353cafef01b2d94a424c3190d7eed255f1fd4f3a2b"
+      },
+      {
+        "path": "src/tools/fs/directory_tree.ts",
+        "bytes": 7429,
+        "sha256": "2075e544ef5d3bbfabb23530538366719de0447c9b64202b7223f2f935d59d6f"
+      },
+      {
+        "path": "src/tools/fs/list.ts",
+        "bytes": 6262,
+        "sha256": "f5d7d37646e0cb52a8ff3b422a7596ef9af9ab5ddd4eb5bbac942f95625df73f"
+      },
+      {
+        "path": "src/tools/fs/list_allowed_directories.ts",
+        "bytes": 2605,
+        "sha256": "74a237010ae6ede88ae4ab9baf0a0d8bcd84980232272449bad663f0ac43926f"
+      },
+      {
+        "path": "src/tools/fs/mkdir.ts",
+        "bytes": 3466,
+        "sha256": "c332dd87339f990bc334e565ffd2492df91b8ec422acb3b94d7728936b4013c4"
+      },
+      {
+        "path": "src/tools/fs/move.ts",
+        "bytes": 5997,
+        "sha256": "769c5aca68b7b29e4866ef9b8dd9c846a269d3b191540941a152d323dc3107de"
+      },
+      {
+        "path": "src/tools/fs/read.ts",
+        "bytes": 7410,
+        "sha256": "0272872a4014d7917846be1a0549203afe19359d22da597103c56c4f490aff14"
+      },
+      {
+        "path": "src/tools/fs/read_multiple_files.ts",
+        "bytes": 5310,
+        "sha256": "43ee3e03fa1f749f5d95bbb0cb49d40558f9a6ceb1aea9b31f5f9a12d23ebc9d"
+      },
+      {
+        "path": "src/tools/fs/stat.ts",
+        "bytes": 2971,
+        "sha256": "6e413cc9a5a8653b51b6fe21066c78db92990721635a918690d46d0f7708855c"
+      },
+      {
+        "path": "src/tools/fs/write.ts",
+        "bytes": 4061,
+        "sha256": "47aa01eb2a7d3d6ee6ef7571e2232a08aa242f43a2e75cb5216266d7d9050756"
+      },
+      {
+        "path": "src/tools/git/git_blame.ts",
+        "bytes": 6221,
+        "sha256": "892a6105d02488eb0a8f92815163a48ae1a2b365e4aaf832e3fe9542f1a6294a"
+      },
+      {
+        "path": "src/tools/git/git_diff.ts",
+        "bytes": 6170,
+        "sha256": "dd17b435f082c3c6a4c2812b6af5046128b42ace66cbf2a9b0941b0428de059d"
+      },
+      {
+        "path": "src/tools/git/git_log.ts",
+        "bytes": 6150,
+        "sha256": "2564d45846d980d6cb0e0015399b1f78de9fe16bcb4568caf4c6e8c2d4047fcc"
+      },
+      {
+        "path": "src/tools/git/git_show.ts",
+        "bytes": 6221,
+        "sha256": "ebe618761bd0dc9a3cd83840e32e1e0a53ef2ffc713d223009668e16a6166e1b"
+      },
+      {
+        "path": "src/tools/git/git_status.ts",
+        "bytes": 6283,
+        "sha256": "d6998e2dcc9212c95fd29a58bd39181c7ba060b3651905a66939a895fdf2d950"
+      },
+      {
+        "path": "src/tools/network/fetch_url.ts",
+        "bytes": 24024,
+        "sha256": "a49285c25e3790ba2f3deeda58071eb88d9ca9023fed6b1c4ccc69b44481ca83"
+      },
+      {
+        "path": "src/tools/search/glob.ts",
+        "bytes": 3919,
+        "sha256": "0a2ddc5f503b106dc222a2e89788f71d6e4ab5f20dcf03c93103395287053d0d"
+      },
+      {
+        "path": "src/tools/search/grep.ts",
+        "bytes": 18998,
+        "sha256": "18477786a9d237a36f5c95bf5d34c38610ba60745845df0ba6f6795e0951a197"
+      },
+      {
+        "path": "src/tools/search/read_json.ts",
+        "bytes": 4010,
+        "sha256": "d977566ca6a2e446c9d7885357bbabd15f3ede777e4c3717b94143f77cb33a61"
+      },
+      {
+        "path": "src/tools/slicing/diff_files.ts",
+        "bytes": 8178,
+        "sha256": "e967ec0be6ece2f3890ea7bf8ae810c506624ac0e3070f61a786ac46f278fde6"
+      },
+      {
+        "path": "src/tools/slicing/read_section.ts",
+        "bytes": 10975,
+        "sha256": "3aabdaef34c1649e22e98017afb78379419e0bb079a317b3d44ae5cb0ea1510c"
+      },
+      {
+        "path": "src/tools/slicing/read_since.ts",
+        "bytes": 8109,
+        "sha256": "1d4c05b524580aed4d43587ec25a3ce853205613b165b3aff017a10ff3d92eae"
+      },
+      {
+        "path": "src/tools/system/audit_tail.ts",
+        "bytes": 19634,
+        "sha256": "7c4cf10fd95acfa4517b38252cb6725b09f316cb464201b7f88b04db1178dbf1"
+      },
+      {
+        "path": "src/tools/system/check_env.ts",
+        "bytes": 3513,
+        "sha256": "e4593110ee4926c69a2e9301171f22406055d85663a2750db571ba9d69885e8f"
+      },
+      {
+        "path": "src/tools/system/find_command.ts",
+        "bytes": 4971,
+        "sha256": "234cfc2749f1cae901cf24f75715958b217b19667f9df81b9e7ea1b18ca9df75"
+      },
+      {
+        "path": "src/tools/system/interact.ts",
+        "bytes": 7563,
+        "sha256": "0f70820f30d4acbc9726568195322e65987f218cf128662318e1d6351de9ddae"
+      },
+      {
+        "path": "src/tools/system/kill_process.ts",
+        "bytes": 4565,
+        "sha256": "e8f85ba258586e1d60bb9c9545edfc7ddbc1c3984710560a54809b6eb988ece8"
+      },
+      {
+        "path": "src/tools/system/list_path_dirs.ts",
+        "bytes": 2316,
+        "sha256": "e44896467c67546ee22929842b7acbdbeefdd0c37ed71d218e56c01e6f930339"
+      },
+      {
+        "path": "src/tools/system/list_process.ts",
+        "bytes": 2876,
+        "sha256": "80048124c62aa4813bacf278f04088df7cc3667e295bcd8bb01f1a706798a2e0"
+      },
+      {
+        "path": "src/tools/system/ssh_exec.ts",
+        "bytes": 12898,
+        "sha256": "4586d886422f433a881f69cb72114e85afc005336ec3ffc7d46a228e3f2daf5a"
+      },
+      {
+        "path": "src/tools/system/start_process.ts",
+        "bytes": 8144,
+        "sha256": "996a73563de186302bd55216338b17c8fff2dd6df14e54363910fe3c9f9cda69"
+      },
+      {
+        "path": "tsconfig.json",
+        "bytes": 611,
+        "sha256": "dd570ad59b8eaf57843249212b9e211ed0e9e6004c4c1eec05b40ada4113b22c"
+      }
+    ]
+  },
+  "npm": {
+    "lock_sha256": "502dc3e03ca1dc6b18dfb95333935836dfc11904219a0712793e69ddb4ed9fd4",
+    "count": 96,
+    "bytes": 7697333,
+    "packages": [
+      {
+        "lock_path": "node_modules/@hono/node-server",
+        "name": "@hono/node-server",
+        "version": "1.19.14",
+        "url": "https://registry.npmjs.org/@hono/node-server/-/node-server-1.19.14.tgz",
+        "integrity": "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==",
+        "optional": false,
+        "bytes": 28908,
+        "sha256": "0b956f346f96d8b89d03ee4e586e267a2d3877f4393fb97eb068572fd7a5b9ad",
+        "filename": "selected-npm-000.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/@modelcontextprotocol/sdk",
+        "name": "@modelcontextprotocol/sdk",
+        "version": "1.29.0",
+        "url": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.29.0.tgz",
+        "integrity": "sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==",
+        "optional": false,
+        "bytes": 572539,
+        "sha256": "1c51470eca288ae744a5d8bb48e217d3eab5869eb2cbaf587fc29f336d6b096c",
+        "filename": "selected-npm-001.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/@types/node",
+        "name": "@types/node",
+        "version": "22.19.19",
+        "url": "https://registry.npmjs.org/@types/node/-/node-22.19.19.tgz",
+        "integrity": "sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew==",
+        "optional": false,
+        "bytes": 445223,
+        "sha256": "c32937b40ab720ef6242de0bf4c8b8e48f1e4a29fbb4cb9d9f596471ee58d5c4",
+        "filename": "selected-npm-002.tgz",
+        "archive_prefix": "node v22.19"
+      },
+      {
+        "lock_path": "node_modules/accepts",
+        "name": "accepts",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/accepts/-/accepts-2.0.0.tgz",
+        "integrity": "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==",
+        "optional": false,
+        "bytes": 5460,
+        "sha256": "173d915f7d88df8cd4db2129a030c3b1c9cafd3b7aee5b89465bf3ad18372542",
+        "filename": "selected-npm-003.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ajv",
+        "name": "ajv",
+        "version": "8.20.0",
+        "url": "https://registry.npmjs.org/ajv/-/ajv-8.20.0.tgz",
+        "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
+        "optional": false,
+        "bytes": 217611,
+        "sha256": "b2f0b3a893bbb8cc5efb6814f08b1499e19e31d5dd73683f5893382f48f6e7b3",
+        "filename": "selected-npm-004.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ajv-formats",
+        "name": "ajv-formats",
+        "version": "3.0.1",
+        "url": "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz",
+        "integrity": "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==",
+        "optional": false,
+        "bytes": 15999,
+        "sha256": "f4d6980fd367381fd29199066911e863db8d97496613b6c2c5b91563a150acc5",
+        "filename": "selected-npm-005.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/body-parser",
+        "name": "body-parser",
+        "version": "2.2.2",
+        "url": "https://registry.npmjs.org/body-parser/-/body-parser-2.2.2.tgz",
+        "integrity": "sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA==",
+        "optional": false,
+        "bytes": 10690,
+        "sha256": "c28d97347e805dacc05973a20ab0052b8c25cf2468f1a6da4ac03141da73a30b",
+        "filename": "selected-npm-006.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/bytes",
+        "name": "bytes",
+        "version": "3.1.2",
+        "url": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
+        "integrity": "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==",
+        "optional": false,
+        "bytes": 4496,
+        "sha256": "835e37ad5a40da45eaed6e32d99847627a15b2a4671741182521fe48dee3c581",
+        "filename": "selected-npm-007.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/call-bind-apply-helpers",
+        "name": "call-bind-apply-helpers",
+        "version": "1.0.2",
+        "url": "https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz",
+        "integrity": "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==",
+        "optional": false,
+        "bytes": 6067,
+        "sha256": "073e9ff9dbabedf5c128020a677381e9f92c90188d118830b30a7656a7c37d2c",
+        "filename": "selected-npm-008.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/call-bound",
+        "name": "call-bound",
+        "version": "1.0.4",
+        "url": "https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz",
+        "integrity": "sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==",
+        "optional": false,
+        "bytes": 6382,
+        "sha256": "32086f492fedf1b9b34811f2ee50ca2cca53da5c783f7cd5f939d3f1e86bbd32",
+        "filename": "selected-npm-009.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/content-disposition",
+        "name": "content-disposition",
+        "version": "1.1.0",
+        "url": "https://registry.npmjs.org/content-disposition/-/content-disposition-1.1.0.tgz",
+        "integrity": "sha512-5jRCH9Z/+DRP7rkvY83B+yGIGX96OYdJmzngqnw2SBSxqCFPd0w2km3s5iawpGX8krnwSGmF0FW5Nhr0Hfai3g==",
+        "optional": false,
+        "bytes": 7066,
+        "sha256": "2f8b1925a8b123a86606c11322fc10aafc1dd85f2860fffe32893e20aef4093c",
+        "filename": "selected-npm-010.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/content-type",
+        "name": "content-type",
+        "version": "1.0.5",
+        "url": "https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz",
+        "integrity": "sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==",
+        "optional": false,
+        "bytes": 3914,
+        "sha256": "ac31d098405f0242dd712218f38a14a6202bd4eb01067db05db765d9a9bd12c8",
+        "filename": "selected-npm-011.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/cookie",
+        "name": "cookie",
+        "version": "0.7.2",
+        "url": "https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz",
+        "integrity": "sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==",
+        "optional": false,
+        "bytes": 8220,
+        "sha256": "76b160f8251c630a116a2e0acf03557b0758975b2c0df800607248fc9aae9e20",
+        "filename": "selected-npm-012.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/cookie-signature",
+        "name": "cookie-signature",
+        "version": "1.2.2",
+        "url": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.2.2.tgz",
+        "integrity": "sha512-D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg==",
+        "optional": false,
+        "bytes": 2524,
+        "sha256": "4d2bbaaf1c299e60ef0d7df952b52af95b20d56cbcbd4468d4210650083553d3",
+        "filename": "selected-npm-013.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/cors",
+        "name": "cors",
+        "version": "2.8.6",
+        "url": "https://registry.npmjs.org/cors/-/cors-2.8.6.tgz",
+        "integrity": "sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==",
+        "optional": false,
+        "bytes": 6456,
+        "sha256": "32242124397140800e1238a252b4cd74669d58c81b655d9d3721789b56c1c1ff",
+        "filename": "selected-npm-014.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/cross-spawn",
+        "name": "cross-spawn",
+        "version": "7.0.6",
+        "url": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+        "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
+        "optional": false,
+        "bytes": 6255,
+        "sha256": "188c320cdc413adfec03098fda72af7a9b02152ba13d3a8f87f172d93ced38ea",
+        "filename": "selected-npm-015.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/debug",
+        "name": "debug",
+        "version": "4.4.3",
+        "url": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
+        "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
+        "optional": false,
+        "bytes": 13449,
+        "sha256": "89c1ac9c946ee8905a875837114528e97eeae35e03be3190584b2216af43e4a7",
+        "filename": "selected-npm-016.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/depd",
+        "name": "depd",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/depd/-/depd-2.0.0.tgz",
+        "integrity": "sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==",
+        "optional": false,
+        "bytes": 8374,
+        "sha256": "28a58a2056093441f1d00d677d95918d2e4b3e98bac86237159101cae315d4a7",
+        "filename": "selected-npm-017.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/diff",
+        "name": "diff",
+        "version": "9.0.0",
+        "url": "https://registry.npmjs.org/diff/-/diff-9.0.0.tgz",
+        "integrity": "sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==",
+        "optional": false,
+        "bytes": 152500,
+        "sha256": "b898bf23c95594607576e25ddd4013f1d51ed0e862aaf0732815830c87b3b58f",
+        "filename": "selected-npm-018.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/dunder-proto",
+        "name": "dunder-proto",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz",
+        "integrity": "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==",
+        "optional": false,
+        "bytes": 5049,
+        "sha256": "ed1342228c82c10df9921c59d684df516a0cd6ed25b61e5f9d6330895326cfdb",
+        "filename": "selected-npm-019.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ee-first",
+        "name": "ee-first",
+        "version": "1.1.1",
+        "url": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
+        "integrity": "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==",
+        "optional": false,
+        "bytes": 2733,
+        "sha256": "5148e8eb7e222b2a09127618bbdb5033daf6262cfc735d3101ea98620128b99c",
+        "filename": "selected-npm-020.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/encodeurl",
+        "name": "encodeurl",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz",
+        "integrity": "sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==",
+        "optional": false,
+        "bytes": 3020,
+        "sha256": "9b2e418b8851b8f9e7a13d5ada3bd4d3c5ef042885867261f556347d4bbefb29",
+        "filename": "selected-npm-021.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/es-define-property",
+        "name": "es-define-property",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz",
+        "integrity": "sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==",
+        "optional": false,
+        "bytes": 4431,
+        "sha256": "5986b8b13121340a8b0d5c7d8f0f961aa80ef3a74515ca9cb7a78d86ed0385f7",
+        "filename": "selected-npm-022.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/es-errors",
+        "name": "es-errors",
+        "version": "1.3.0",
+        "url": "https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz",
+        "integrity": "sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==",
+        "optional": false,
+        "bytes": 5338,
+        "sha256": "d14dd1c35b4bd3b8aca3219fd3627eb7f3eb49cf6b4c8a7ca58b91fd7a190993",
+        "filename": "selected-npm-023.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/es-object-atoms",
+        "name": "es-object-atoms",
+        "version": "1.1.1",
+        "url": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.1.tgz",
+        "integrity": "sha512-FGgH2h8zKNim9ljj7dankFPcICIK9Cp5bm+c2gQSYePhpaG5+esrLODihIorn+Pe6FGJzWhXQotPv73jTaldXA==",
+        "optional": false,
+        "bytes": 4658,
+        "sha256": "3e18e4d757818aee7bf1921686c6c3e7f9676d17c5c6fec560567c6beee579ce",
+        "filename": "selected-npm-024.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/escape-html",
+        "name": "escape-html",
+        "version": "1.0.3",
+        "url": "https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz",
+        "integrity": "sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==",
+        "optional": false,
+        "bytes": 1917,
+        "sha256": "a101155c3cbdfb1e4f98f2f83c8b5e392db6accfa606df0eba8b87a5762b0366",
+        "filename": "selected-npm-025.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/etag",
+        "name": "etag",
+        "version": "1.8.1",
+        "url": "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz",
+        "integrity": "sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==",
+        "optional": false,
+        "bytes": 4386,
+        "sha256": "f6a96c78a973d2ab660c9efeee6aa74a399cd9e770625ba1ed95e1aca9fd0faf",
+        "filename": "selected-npm-026.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/eventsource",
+        "name": "eventsource",
+        "version": "3.0.7",
+        "url": "https://registry.npmjs.org/eventsource/-/eventsource-3.0.7.tgz",
+        "integrity": "sha512-CRT1WTyuQoD771GW56XEZFQ/ZoSfWid1alKGDYMmkt2yl8UXrVR4pspqWNEcqKvVIzg6PAltWjxcSSPrboA4iA==",
+        "optional": false,
+        "bytes": 24507,
+        "sha256": "7c62d4bb196e59b39c5af79e550d6fe4261649a74d9f5e605b071e1da6081c92",
+        "filename": "selected-npm-027.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/eventsource-parser",
+        "name": "eventsource-parser",
+        "version": "3.0.8",
+        "url": "https://registry.npmjs.org/eventsource-parser/-/eventsource-parser-3.0.8.tgz",
+        "integrity": "sha512-70QWGkr4snxr0OXLRWsFLeRBIRPuQOvt4s8QYjmUlmlkyTZkRqS7EDVRZtzU3TiyDbXSzaOeF0XUKy8PchzukQ==",
+        "optional": false,
+        "bytes": 20541,
+        "sha256": "cd56477d309b2574d2eb053d75a8bd897176159ba063a406795ea954faa75e50",
+        "filename": "selected-npm-028.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/express",
+        "name": "express",
+        "version": "5.2.1",
+        "url": "https://registry.npmjs.org/express/-/express-5.2.1.tgz",
+        "integrity": "sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==",
+        "optional": false,
+        "bytes": 22560,
+        "sha256": "1773a16c02b4422653479b9c4d211268f7022bdac0d817b5698535bb485dd005",
+        "filename": "selected-npm-029.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/express-rate-limit",
+        "name": "express-rate-limit",
+        "version": "8.5.2",
+        "url": "https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-8.5.2.tgz",
+        "integrity": "sha512-5Kb34ipNX694DH48vN9irak1Qx30nb0PLYHXfJgw4YEjiC3ZEmZJhwOp+VfiCYwFzvFTdB9QkArYS5kXa2cx2A==",
+        "optional": false,
+        "bytes": 30950,
+        "sha256": "b5378c50798c138fc0cb2a8f7f377b6a4c11ca97c35ca7fe1cf2d834d9193a93",
+        "filename": "selected-npm-030.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/fast-deep-equal",
+        "name": "fast-deep-equal",
+        "version": "3.1.3",
+        "url": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
+        "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
+        "optional": false,
+        "bytes": 3656,
+        "sha256": "b019a0980f27638dc3f85836b0e478f188e00d7a6e5852c0819fa86f56e47b8f",
+        "filename": "selected-npm-031.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/fast-uri",
+        "name": "fast-uri",
+        "version": "3.1.2",
+        "url": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.2.tgz",
+        "integrity": "sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==",
+        "optional": false,
+        "bytes": 29039,
+        "sha256": "93fee3e901ff8dab91781ba63c4f80873eff047420517db5e1beb814cf33c143",
+        "filename": "selected-npm-032.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/finalhandler",
+        "name": "finalhandler",
+        "version": "2.1.1",
+        "url": "https://registry.npmjs.org/finalhandler/-/finalhandler-2.1.1.tgz",
+        "integrity": "sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==",
+        "optional": false,
+        "bytes": 6341,
+        "sha256": "22949bfc51a620b3598bbe67d65619a9efd781d52704a38d7ba675e248a8b872",
+        "filename": "selected-npm-033.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/forwarded",
+        "name": "forwarded",
+        "version": "0.2.0",
+        "url": "https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz",
+        "integrity": "sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==",
+        "optional": false,
+        "bytes": 2696,
+        "sha256": "9b5a5de95fb85fcb58db5e4fcd94ce8ab9f0476d02202e20a5225cec60431c99",
+        "filename": "selected-npm-034.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/fresh",
+        "name": "fresh",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/fresh/-/fresh-2.0.0.tgz",
+        "integrity": "sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==",
+        "optional": false,
+        "bytes": 4330,
+        "sha256": "ad08397ab05f62b2b507682e23aad699cf8cc33922e0030be0cb640a23277ad7",
+        "filename": "selected-npm-035.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/function-bind",
+        "name": "function-bind",
+        "version": "1.1.2",
+        "url": "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz",
+        "integrity": "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==",
+        "optional": false,
+        "bytes": 9799,
+        "sha256": "704402651b02a1454f17d445fc7dd716efc282d059407126d58ef30a47e807aa",
+        "filename": "selected-npm-036.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/get-intrinsic",
+        "name": "get-intrinsic",
+        "version": "1.3.0",
+        "url": "https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz",
+        "integrity": "sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==",
+        "optional": false,
+        "bytes": 13800,
+        "sha256": "662e27e54e00fe46fbb08f9f4aacb054e3695dbe72cc14b436613fbcfb780544",
+        "filename": "selected-npm-037.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/get-proto",
+        "name": "get-proto",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz",
+        "integrity": "sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==",
+        "optional": false,
+        "bytes": 4474,
+        "sha256": "eb2cc52afb1f1fd82c5fc2a58c2380f0f16fdcdb5631538f3c66887435d70681",
+        "filename": "selected-npm-038.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/gopd",
+        "name": "gopd",
+        "version": "1.2.0",
+        "url": "https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz",
+        "integrity": "sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==",
+        "optional": false,
+        "bytes": 4584,
+        "sha256": "d536d0de4dd285dc1468fbb7f39334a47ee0eec9c27f9b626a6e71466c9fda82",
+        "filename": "selected-npm-039.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/has-symbols",
+        "name": "has-symbols",
+        "version": "1.1.0",
+        "url": "https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz",
+        "integrity": "sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==",
+        "optional": false,
+        "bytes": 8059,
+        "sha256": "4460c7532f28b8df2ddc9a1ec17816d43c24d4b9591dc6c5936b82f7f86ae7c5",
+        "filename": "selected-npm-040.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/hasown",
+        "name": "hasown",
+        "version": "2.0.3",
+        "url": "https://registry.npmjs.org/hasown/-/hasown-2.0.3.tgz",
+        "integrity": "sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==",
+        "optional": false,
+        "bytes": 4521,
+        "sha256": "b0b3cede36255a17fd7945c280a31fd4cbba32e108c17b4a6e883db64c2791d0",
+        "filename": "selected-npm-041.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/hono",
+        "name": "hono",
+        "version": "4.12.18",
+        "url": "https://registry.npmjs.org/hono/-/hono-4.12.18.tgz",
+        "integrity": "sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==",
+        "optional": false,
+        "bytes": 247700,
+        "sha256": "34e071001c39c0eb80306809e9f0b98406e218248195be051c4908ef144af5a0",
+        "filename": "selected-npm-042.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/http-errors",
+        "name": "http-errors",
+        "version": "2.0.1",
+        "url": "https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz",
+        "integrity": "sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==",
+        "optional": false,
+        "bytes": 6448,
+        "sha256": "ad62bbb11baf079699a3f269ed089efdb589be16083ceed94a1117801e1a6c61",
+        "filename": "selected-npm-043.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/iconv-lite",
+        "name": "iconv-lite",
+        "version": "0.7.2",
+        "url": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.7.2.tgz",
+        "integrity": "sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==",
+        "optional": false,
+        "bytes": 189646,
+        "sha256": "61d46769e71f9235ae4d2f5652e5742e3beb83fb096a9d84247103624e8da03e",
+        "filename": "selected-npm-044.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/inherits",
+        "name": "inherits",
+        "version": "2.0.4",
+        "url": "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz",
+        "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",
+        "optional": false,
+        "bytes": 2030,
+        "sha256": "d94dbc6c1bb3c5ac0fb12a73ade187108fc60de273a1b754f55044eb5e24afaf",
+        "filename": "selected-npm-045.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ip-address",
+        "name": "ip-address",
+        "version": "10.2.0",
+        "url": "https://registry.npmjs.org/ip-address/-/ip-address-10.2.0.tgz",
+        "integrity": "sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==",
+        "optional": false,
+        "bytes": 59066,
+        "sha256": "37e0ddc03f4d1576c11b4405b022c41cdbcdcf1347f07fa96ea03d75f9a7c0ba",
+        "filename": "selected-npm-046.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ipaddr.js",
+        "name": "ipaddr.js",
+        "version": "1.9.1",
+        "url": "https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz",
+        "integrity": "sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==",
+        "optional": false,
+        "bytes": 11501,
+        "sha256": "7441d9623f67fe4160eccfd82ae9a404dcd55e1e4f1b68e06e2374dade4e8fee",
+        "filename": "selected-npm-047.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/is-promise",
+        "name": "is-promise",
+        "version": "4.0.0",
+        "url": "https://registry.npmjs.org/is-promise/-/is-promise-4.0.0.tgz",
+        "integrity": "sha512-hvpoI6korhJMnej285dSg6nu1+e6uxs7zG3BYAm5byqDsgJNWwxzM6z6iZiAgQR4TJ30JmBTOwqZUw3WlyH3AQ==",
+        "optional": false,
+        "bytes": 1620,
+        "sha256": "853891173876fa03b8762cf63e7f0c0d60e524947f4e4d5852d94c22acb445a7",
+        "filename": "selected-npm-048.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/isexe",
+        "name": "isexe",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz",
+        "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==",
+        "optional": false,
+        "bytes": 3756,
+        "sha256": "47cfe872e088e28c53b736fef305324b57cc1cfc9f72a9b0f769f92731cb8359",
+        "filename": "selected-npm-049.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/jose",
+        "name": "jose",
+        "version": "6.2.3",
+        "url": "https://registry.npmjs.org/jose/-/jose-6.2.3.tgz",
+        "integrity": "sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==",
+        "optional": false,
+        "bytes": 50070,
+        "sha256": "c4448be09f18470665391b6a29ab3ec108e6830b78aea93076ce3348fb7b55a5",
+        "filename": "selected-npm-050.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/json-schema-traverse",
+        "name": "json-schema-traverse",
+        "version": "1.0.0",
+        "url": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz",
+        "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==",
+        "optional": false,
+        "bytes": 6074,
+        "sha256": "023222622df29fc274bde5d3590e47aa1d4a8e3c1d6e2aba029948ed79799b21",
+        "filename": "selected-npm-051.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/json-schema-typed",
+        "name": "json-schema-typed",
+        "version": "8.0.2",
+        "url": "https://registry.npmjs.org/json-schema-typed/-/json-schema-typed-8.0.2.tgz",
+        "integrity": "sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA==",
+        "optional": false,
+        "bytes": 37491,
+        "sha256": "e7dc4126e4fcf4c3073b3f7e99531eadc8633f7837b20ec97359a8d7add06bc9",
+        "filename": "selected-npm-052.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/math-intrinsics",
+        "name": "math-intrinsics",
+        "version": "1.1.0",
+        "url": "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz",
+        "integrity": "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==",
+        "optional": false,
+        "bytes": 6355,
+        "sha256": "b8c2c35575493dc086df88cfc468a9e2651b6617336480ab3f00fcf853f443a7",
+        "filename": "selected-npm-053.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/media-typer",
+        "name": "media-typer",
+        "version": "1.1.0",
+        "url": "https://registry.npmjs.org/media-typer/-/media-typer-1.1.0.tgz",
+        "integrity": "sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==",
+        "optional": false,
+        "bytes": 3658,
+        "sha256": "b5dc531e1d1efc92cfb659be11e74e7e697caef935c233e05016a7b2997c19be",
+        "filename": "selected-npm-054.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/merge-descriptors",
+        "name": "merge-descriptors",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-2.0.0.tgz",
+        "integrity": "sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==",
+        "optional": false,
+        "bytes": 2013,
+        "sha256": "ae88322a5fc71952d3990ae999a7afc7a4bf7cba086b9ccc1c9482432b101dce",
+        "filename": "selected-npm-055.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/mime-db",
+        "name": "mime-db",
+        "version": "1.54.0",
+        "url": "https://registry.npmjs.org/mime-db/-/mime-db-1.54.0.tgz",
+        "integrity": "sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==",
+        "optional": false,
+        "bytes": 29535,
+        "sha256": "2b21054e65d0eabd58c5002d2713e968dd47b15700bfed4b7281a344ded1c420",
+        "filename": "selected-npm-056.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/mime-types",
+        "name": "mime-types",
+        "version": "3.0.2",
+        "url": "https://registry.npmjs.org/mime-types/-/mime-types-3.0.2.tgz",
+        "integrity": "sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==",
+        "optional": false,
+        "bytes": 7375,
+        "sha256": "2f9dd28353c303ff8750fbf68e474755b01c54a989883d227d605f7bfa3dd2ac",
+        "filename": "selected-npm-057.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/ms",
+        "name": "ms",
+        "version": "2.1.3",
+        "url": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+        "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+        "optional": false,
+        "bytes": 2967,
+        "sha256": "f6616e15e530ed552f9daa2d3ce71963947c6bc7c98c9b64fd3e673fd02622c6",
+        "filename": "selected-npm-058.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/negotiator",
+        "name": "negotiator",
+        "version": "1.0.0",
+        "url": "https://registry.npmjs.org/negotiator/-/negotiator-1.0.0.tgz",
+        "integrity": "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg==",
+        "optional": false,
+        "bytes": 6792,
+        "sha256": "b5a2dfee1dc0ac52c623cd5c0304be5a8a41cfad40e09f1a13606972cb2dbc04",
+        "filename": "selected-npm-059.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/object-assign",
+        "name": "object-assign",
+        "version": "4.1.1",
+        "url": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz",
+        "integrity": "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==",
+        "optional": false,
+        "bytes": 2675,
+        "sha256": "782d726a263ba7b26cced612af97b80035516df4b0cd788524e7b2cebc4e29ed",
+        "filename": "selected-npm-060.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/object-inspect",
+        "name": "object-inspect",
+        "version": "1.13.4",
+        "url": "https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz",
+        "integrity": "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==",
+        "optional": false,
+        "bytes": 28026,
+        "sha256": "8324967a3afd8a45b0401e3554aebc1843f493bec46a89a7ce8cf072e62e90bf",
+        "filename": "selected-npm-061.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/on-finished",
+        "name": "on-finished",
+        "version": "2.4.1",
+        "url": "https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz",
+        "integrity": "sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==",
+        "optional": false,
+        "bytes": 5052,
+        "sha256": "f64d42f1049c386cdac5204737e09564271639b2b7d203a3ea07ec07d5ddbd0a",
+        "filename": "selected-npm-062.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/once",
+        "name": "once",
+        "version": "1.4.0",
+        "url": "https://registry.npmjs.org/once/-/once-1.4.0.tgz",
+        "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==",
+        "optional": false,
+        "bytes": 1979,
+        "sha256": "cf51460ba370c698f68b976e514d113497339ba018b6003e8e8eb569c6fccfcf",
+        "filename": "selected-npm-063.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/parseurl",
+        "name": "parseurl",
+        "version": "1.3.3",
+        "url": "https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz",
+        "integrity": "sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==",
+        "optional": false,
+        "bytes": 3952,
+        "sha256": "56ef4bfa11e097ce8196b26fa04b42d6091c32498fcab4478e6dd298435f021a",
+        "filename": "selected-npm-064.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/path-key",
+        "name": "path-key",
+        "version": "3.1.1",
+        "url": "https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz",
+        "integrity": "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==",
+        "optional": false,
+        "bytes": 2258,
+        "sha256": "4b8999acb914830edcd3c5b8fec632b32c6bc759ac3edc86336f5a9e08ba7b92",
+        "filename": "selected-npm-065.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/path-to-regexp",
+        "name": "path-to-regexp",
+        "version": "8.4.2",
+        "url": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-8.4.2.tgz",
+        "integrity": "sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==",
+        "optional": false,
+        "bytes": 14900,
+        "sha256": "e8712a9c53b0a2a27cfecc7b80c54df92afb4643c01351e2b2ebb7784bcabd78",
+        "filename": "selected-npm-066.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/pkce-challenge",
+        "name": "pkce-challenge",
+        "version": "5.0.1",
+        "url": "https://registry.npmjs.org/pkce-challenge/-/pkce-challenge-5.0.1.tgz",
+        "integrity": "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==",
+        "optional": false,
+        "bytes": 4210,
+        "sha256": "d1fcbbae5bc05562d13de7c520c2951699e8262a8317fa6c8bbcd8dcff3bea70",
+        "filename": "selected-npm-067.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/proxy-addr",
+        "name": "proxy-addr",
+        "version": "2.0.7",
+        "url": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz",
+        "integrity": "sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==",
+        "optional": false,
+        "bytes": 5495,
+        "sha256": "a0d1b6f34f6d4e733429ba95f7adb7833c8ceab916ba574a93f8a8476bee46d9",
+        "filename": "selected-npm-068.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/qs",
+        "name": "qs",
+        "version": "6.15.2",
+        "url": "https://registry.npmjs.org/qs/-/qs-6.15.2.tgz",
+        "integrity": "sha512-Rzq0KEyX/w/tEybncDgdkZrJgVUsUMk3xjh3t5bv3S1HTAtg+uOYt72+ZfwiQwKdysThkTBdL/rTi6HDmX9Ddw==",
+        "optional": false,
+        "bytes": 67675,
+        "sha256": "e699d4b3ac62181f5bcd29c1d15224054c20d81aab67f7b2e75b7f7a2185b897",
+        "filename": "selected-npm-069.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/range-parser",
+        "name": "range-parser",
+        "version": "1.2.1",
+        "url": "https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz",
+        "integrity": "sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==",
+        "optional": false,
+        "bytes": 3603,
+        "sha256": "905266e2662590b009e38dc096d4e4e103aafda9cb67e658ca985b2d0ad2f926",
+        "filename": "selected-npm-070.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/raw-body",
+        "name": "raw-body",
+        "version": "3.0.2",
+        "url": "https://registry.npmjs.org/raw-body/-/raw-body-3.0.2.tgz",
+        "integrity": "sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==",
+        "optional": false,
+        "bytes": 6308,
+        "sha256": "66de2a025036de58bbe50ab1d42a24ec6d33eda338b8115a3ebf942dae8419db",
+        "filename": "selected-npm-071.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/require-from-string",
+        "name": "require-from-string",
+        "version": "2.0.2",
+        "url": "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz",
+        "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==",
+        "optional": false,
+        "bytes": 1816,
+        "sha256": "cb694a4965908f7775a0c757f00cf4e624d193cd71d77988fbcca0f597b88d82",
+        "filename": "selected-npm-072.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/router",
+        "name": "router",
+        "version": "2.2.0",
+        "url": "https://registry.npmjs.org/router/-/router-2.2.0.tgz",
+        "integrity": "sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==",
+        "optional": false,
+        "bytes": 14251,
+        "sha256": "b144af37b39a9517f7a89f1d867e9c2cf29f13f4147d3e80c499fe6ffab69461",
+        "filename": "selected-npm-073.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/safer-buffer",
+        "name": "safer-buffer",
+        "version": "2.1.2",
+        "url": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
+        "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==",
+        "optional": false,
+        "bytes": 12035,
+        "sha256": "78812f65ae3b98071ce1c9bacbe0666f4220d0b2753c2a11530eb27df440a3b3",
+        "filename": "selected-npm-074.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/send",
+        "name": "send",
+        "version": "1.2.1",
+        "url": "https://registry.npmjs.org/send/-/send-1.2.1.tgz",
+        "integrity": "sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==",
+        "optional": false,
+        "bytes": 10317,
+        "sha256": "fa254fb316dd23ddcb2beebd533b23788aec4cf6a3dba58af34150170435c472",
+        "filename": "selected-npm-075.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/serve-static",
+        "name": "serve-static",
+        "version": "2.2.1",
+        "url": "https://registry.npmjs.org/serve-static/-/serve-static-2.2.1.tgz",
+        "integrity": "sha512-xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw==",
+        "optional": false,
+        "bytes": 5463,
+        "sha256": "36d4f72bb59372eb18202fee25ff3d8bf46655f0121830fbe32e32cbdc625f43",
+        "filename": "selected-npm-076.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/setprototypeof",
+        "name": "setprototypeof",
+        "version": "1.2.0",
+        "url": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz",
+        "integrity": "sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==",
+        "optional": false,
+        "bytes": 1969,
+        "sha256": "c83bcc6ea632567e3f6928a83a1c0c7073519aaca9b88b847a3b404417eadfe2",
+        "filename": "selected-npm-077.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/shebang-command",
+        "name": "shebang-command",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz",
+        "integrity": "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==",
+        "optional": false,
+        "bytes": 1506,
+        "sha256": "9acba5bd18a51e9cdf5898380e4df63f803e1844def64ae1a46f88cff86d556e",
+        "filename": "selected-npm-078.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/shebang-regex",
+        "name": "shebang-regex",
+        "version": "3.0.0",
+        "url": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz",
+        "integrity": "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==",
+        "optional": false,
+        "bytes": 1503,
+        "sha256": "fedbabaa6db26c6be0183f82777dfa852d59a62f8885de93bd32ebc28758958f",
+        "filename": "selected-npm-079.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/side-channel",
+        "name": "side-channel",
+        "version": "1.1.0",
+        "url": "https://registry.npmjs.org/side-channel/-/side-channel-1.1.0.tgz",
+        "integrity": "sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==",
+        "optional": false,
+        "bytes": 7750,
+        "sha256": "8493e77b990b242efebd824d0912df161bf640fc75071d5bc844ce0d7706a485",
+        "filename": "selected-npm-080.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/side-channel-list",
+        "name": "side-channel-list",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz",
+        "integrity": "sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==",
+        "optional": false,
+        "bytes": 6135,
+        "sha256": "793c94ac215be772757045f8804406578b8cbc1bda7e1cde23011f9145af74f7",
+        "filename": "selected-npm-081.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/side-channel-map",
+        "name": "side-channel-map",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz",
+        "integrity": "sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==",
+        "optional": false,
+        "bytes": 5280,
+        "sha256": "3b256b6421300bcc962d891b1588fd4b64e84e339b9c29f78c61b72f2a7116d6",
+        "filename": "selected-npm-082.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/side-channel-weakmap",
+        "name": "side-channel-weakmap",
+        "version": "1.0.2",
+        "url": "https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz",
+        "integrity": "sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==",
+        "optional": false,
+        "bytes": 5442,
+        "sha256": "3b2a54f0c5e7ad898c8f0ffda2a6805fb2cc5d68f53addf0b4a9ec0db9d0d06e",
+        "filename": "selected-npm-083.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/statuses",
+        "name": "statuses",
+        "version": "2.0.2",
+        "url": "https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz",
+        "integrity": "sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==",
+        "optional": false,
+        "bytes": 4797,
+        "sha256": "ca800a24710488b568f4e73e8f570dd6b911c122cbf42b06930dee7c25949fe0",
+        "filename": "selected-npm-084.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/toidentifier",
+        "name": "toidentifier",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz",
+        "integrity": "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==",
+        "optional": false,
+        "bytes": 2347,
+        "sha256": "186fcc77488de327daf911d362d4e773bab9909f1df2a5f0c20b875205b92e08",
+        "filename": "selected-npm-085.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/type-is",
+        "name": "type-is",
+        "version": "2.1.0",
+        "url": "https://registry.npmjs.org/type-is/-/type-is-2.1.0.tgz",
+        "integrity": "sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==",
+        "optional": false,
+        "bytes": 6752,
+        "sha256": "9a53088d69cd488e0c2cb4fcee5a983089c0d492404cf212161c77501fb302fc",
+        "filename": "selected-npm-086.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/type-is/node_modules/content-type",
+        "name": "content-type",
+        "version": "2.0.0",
+        "url": "https://registry.npmjs.org/content-type/-/content-type-2.0.0.tgz",
+        "integrity": "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ==",
+        "optional": false,
+        "bytes": 5728,
+        "sha256": "a2d4689d44f4de2c2c5039f58e01279f2d4bb13994a5046de413e772a5a1bc06",
+        "filename": "selected-npm-087.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/typescript",
+        "name": "typescript",
+        "version": "5.9.3",
+        "url": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+        "optional": false,
+        "bytes": 4377468,
+        "sha256": "10e108c9cf7d5f2879053dff18515fb405abf2ccef63eaaf017d9c571687a1d3",
+        "filename": "selected-npm-088.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/undici-types",
+        "name": "undici-types",
+        "version": "6.21.0",
+        "url": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+        "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+        "optional": false,
+        "bytes": 21020,
+        "sha256": "cfa1a9a5e18988850e548f4f6b629c58da32dc32bebb116e58ea301e516fd16d",
+        "filename": "selected-npm-089.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/unpipe",
+        "name": "unpipe",
+        "version": "1.0.0",
+        "url": "https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz",
+        "integrity": "sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==",
+        "optional": false,
+        "bytes": 2096,
+        "sha256": "2dfb5e06d1d4bf1fe9f0fa7f633c4a2fde04d8b41cf0b9bd249a42561d5edfb6",
+        "filename": "selected-npm-090.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/vary",
+        "name": "vary",
+        "version": "1.1.2",
+        "url": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",
+        "integrity": "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==",
+        "optional": false,
+        "bytes": 3772,
+        "sha256": "7378860671377a35e7a443ecfdca0745cfd066f595c90d581b827defea246e71",
+        "filename": "selected-npm-091.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/which",
+        "name": "which",
+        "version": "2.0.2",
+        "url": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+        "integrity": "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==",
+        "optional": false,
+        "bytes": 4496,
+        "sha256": "a13adf5fddeb769655edce551e81fbb11904b9c9be76d95e41da8c4c499d4edc",
+        "filename": "selected-npm-092.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/wrappy",
+        "name": "wrappy",
+        "version": "1.0.2",
+        "url": "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz",
+        "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==",
+        "optional": false,
+        "bytes": 1676,
+        "sha256": "aff3730d91b7b1e143822956d14608f563163cf11b9d0ae602df1fe1e430fdfb",
+        "filename": "selected-npm-093.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/zod",
+        "name": "zod",
+        "version": "3.25.76",
+        "url": "https://registry.npmjs.org/zod/-/zod-3.25.76.tgz",
+        "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==",
+        "optional": false,
+        "bytes": 583600,
+        "sha256": "9e1f1a05f0dd0c1dab64ee91ceb9bf55cd44d35368c70edda80a2fdc70a88377",
+        "filename": "selected-npm-094.tgz",
+        "archive_prefix": "package"
+      },
+      {
+        "lock_path": "node_modules/zod-to-json-schema",
+        "name": "zod-to-json-schema",
+        "version": "3.25.2",
+        "url": "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.25.2.tgz",
+        "integrity": "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==",
+        "optional": false,
+        "bytes": 46362,
+        "sha256": "a4919ab5a32aff4fd6c119c9f187f0dd4b4c490d30c4c4fdaf7c5ff6f38d93f4",
+        "filename": "selected-npm-095.tgz",
+        "archive_prefix": "package"
+      }
+    ]
+  },
+  "install": "direct safe archive materialization in original locked node_modules paths; no npm, resolver or lifecycle scripts",
+  "native_build": "pinned typescript/lib/tsc.js only"
+}
