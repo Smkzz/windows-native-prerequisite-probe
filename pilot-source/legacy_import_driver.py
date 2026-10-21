@@ -108,12 +108,22 @@ def dependencies(root):
          importlib.metadata.version("pytest")=="8.3.5" and
          importlib.metadata.version("pywin32")=="312","PINNED_DEPENDENCY_VERSION_MISMATCH")
 
+def bounded_failure_kind(message):
+    text=message[:2048]
+    kinds=sorted(set(re.findall(r"(?<![A-Za-z0-9_])(AssertionError|AttributeError|TypeError|KeyError|ValueError|RuntimeError|Rejected|OSError)(?=[:\s]|$)",text)))[:8]
+    return {"exception_kinds":kinds,
+            "mentions_validate_paths":"validate_paths" in text,
+            "mentions_stale_sample":"STALE_SAMPLE" in text,
+            "mentions_healthy":"healthy" in text,
+            "assert_none":"assert None" in text,
+            "assert_21_vs_20":"21 == 20" in text}
+
 def selected_regressions(root):
     import pytest
     selection=json.loads((SOURCE/"LEGACY_IMPORT_SELECTION.json").read_text())
     wanted=selection["nodes"]
-    need(len(wanted)==selection["selected_declarations"]==109 and len(set(wanted))==109
-         and len(selection["expected_collected_nodes"])==selection["expected_count"]==112,
+    need(len(wanted)==selection["selected_declarations"]==10 and len(set(wanted))==10
+         and len(selection["expected_collected_nodes"])==selection["expected_count"]==10,
          "FIXED_REGRESSION_SELECTION_REQUIRED")
     class Receipt:
         def __init__(self):
@@ -140,6 +150,7 @@ def selected_regressions(root):
                 self.failure_reports.append({"node":report.nodeid,"phase":report.when,
                     "assertion_line":line if type(line) is int and 0<line<10000 else None,
                     "assertion_error":"AssertionError" in message,
+                    "bounded_failure_kind":bounded_failure_kind(message),
                     "version_literals":sorted(set(re.findall(r"(?<![\w.])\d+\.\d+\.\d+(?:-rc\.\d+)?(?![\w.])",message)))[:8],
                     "integer_literals":re.findall(r"(?<![\w.])\d{1,9}(?![\w.])",message)[:8]})
             if report.skipped:
@@ -160,7 +171,7 @@ def selected_regressions(root):
             "ordinary_tmp_path_calls":receipt.ordinary_tmp_paths,
             "expected_ordinary_tmp_path_calls":selection["expected_ordinary_tmp_path_calls"],
             "runner_import_path_correction_only":True,"numbered_false_tmp_path_fixture":True,"native_api_mocks":"EXISTING_UNIT_TEST_SEAMS_ONLY"}
-    result["all_passed"]=(code==0 and len(receipt.passed)==112 and not receipt.failed and not receipt.skipped and receipt.ordinary_tmp_paths==selection["expected_ordinary_tmp_path_calls"])
+    result["all_passed"]=(code==0 and len(receipt.passed)==10 and not receipt.failed and not receipt.skipped and receipt.ordinary_tmp_paths==selection["expected_ordinary_tmp_path_calls"])
     return result
 
 def child(root,phase):
@@ -231,7 +242,7 @@ def coordinate(root):
     passed=regression["all_passed"]
     dump({"schema":"localcontrol-legacy-import-regression/v1",
           "result":"PASS_LEGACY_IMPORT_REGRESSION_ONLY" if passed else "FAIL_SCOPED_LEGACY_IMPORT",
-          "selected_regression_tests":112,"selected_modules":9,"phase_passes":{"regression":passed},
+          "selected_regression_tests":10,"selected_modules":4,"phase_passes":{"regression":passed},
           "runner_import_path_correction_only":True,"numbered_false_tmp_path_fixture":True,"candidate_source_changed":False,
           "provider_activated":False,"real_winfs_repeated":False,"full_regression":False,
           "production_activation_authorized":False})

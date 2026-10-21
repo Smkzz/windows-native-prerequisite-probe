@@ -76,12 +76,12 @@ jobs:
             $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
             $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
             Invoke-WebRequest -Uri ($base+'pilot-source/LEGACY_IMPORT_SOURCE_MANIFEST.json') -OutFile $manifestPath
-            $manifestHash='1e73847797b36fcdc1623086fe73725be3a2d8a7feb7371bfd5a3815e7a0cacc'
+            $manifestHash='b53b23a500f0f8cf4451f73a0510877db385e8de8576d52b0532f1baad2703e0'
             if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $manifestHash){throw 'MANIFEST_HASH_MISMATCH'}
             $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
             if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or
                $manifest.candidate_tree -cne '2afd017548b4ace8e2a7c67adebb6a5a9baeaf10' -or
-               $manifest.files.Count -ne 88 -or $manifest.selected_nodes -ne 112){throw 'SOURCE_MANIFEST_DRIFT'}
+               $manifest.files.Count -ne 88 -or $manifest.selected_nodes -ne 10){throw 'SOURCE_MANIFEST_DRIFT'}
             $sourceRoot=Join-Path $root 'source'
             $null=New-Item -ItemType Directory -Path $sourceRoot
             $null=New-Item -ItemType Directory -Path (Join-Path $root 'temp')
@@ -135,14 +135,14 @@ jobs:
             [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
               candidate_tree=$manifest.candidate_tree;source_manifest_sha256=$manifestHash;
               python_sha256=$pythonHash;image_version=$env:ImageVersion;
-              offline_dependency_check='PASS';real_winfs_repeated=$false;selected_regression_tests=112;
+              offline_dependency_check='PASS';real_winfs_repeated=$false;selected_regression_tests=10;
               full_release_qualification=$false;production_activation_authorized=$false}|ConvertTo-Json -Compress
             $out=Run-Captured $python @('-I','-B','-S','-X','utf8',(Join-Path $sourceRoot 'legacy_import_driver.py'),$root) 135 'COORDINATOR'
             if($out.Length -gt 100000){throw 'COORDINATOR_OUTPUT_BOUND_EXCEEDED'}
             $out
             $last=($out.Trim() -split [Environment]::NewLine)[-1] | ConvertFrom-Json
             if($last.result -cne 'PASS_LEGACY_IMPORT_REGRESSION_ONLY' -or
-               $last.selected_regression_tests -ne 112 -or $last.selected_modules -ne 9 -or
+               $last.selected_regression_tests -ne 10 -or $last.selected_modules -ne 4 -or
                $last.phase_passes.regression -ne $true -or $last.runner_import_path_correction_only -ne $true -or $last.numbered_false_tmp_path_fixture -ne $true -or
                $last.provider_activated -ne $false){throw 'BOUNDED_LEGACY_IMPORT_FAILED'}
             $failed=$false

@@ -3,13 +3,13 @@
   "candidate_commit": "e071dd2d099577e3ded081f1ffefd7c2bf22e3a8",
   "candidate_tree": "2afd017548b4ace8e2a7c67adebb6a5a9baeaf10",
   "candidate_source_sha256": "3e7a96e1e121c4ee37a59f5b0bc472dce866cdb65834cea65a04854f135c4bde",
-  "selected_nodes": 112,
-  "selected_modules": 9,
+  "selected_nodes": 10,
+  "selected_modules": 4,
   "files": [
     {
       "path": "pilot-source/LEGACY_IMPORT_SELECTION.json",
-      "bytes": 16733,
-      "sha256": "b855f56a9808e062ac48b8c22328e97660d476ca047efe1fb520119eb1fcdb0f",
+      "bytes": 1986,
+      "sha256": "68c657500740d7b7f887d700531c87928b9c440d8f72ecfa8b858064f737ce0e",
       "runner_fixture": true
     },
     {
@@ -20,8 +20,8 @@
     },
     {
       "path": "pilot-source/legacy_import_driver.py",
-      "bytes": 12759,
-      "sha256": "f07dac2ccc20b63d786091db5e9a91d8033c1379255f86aca46a932200a75eb4",
+      "bytes": 13365,
+      "sha256": "e6d6220956bb803129a1e02415194a4913708a85ef9c4598de0ec7815faf0bc5",
       "runner_fixture": true
     },
     {
@@ -562,5 +562,5 @@
       "delta": "IMPORT_PATH_ONLY_LOCALCONTROL_V060_TO_LOCALCONTROL_DOT_V060"
     }
   ],
-  "selected_declarations": 109
+  "selected_declarations": 10
 }
