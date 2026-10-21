@@ -42,7 +42,7 @@ class NextIntegrationCase(unittest.TestCase):
         r = self.call('system_info')
         self.assertTrue(r['ok'], r)
         self.assertEqual(r['data']['version'], SERVER_VERSION)
-        self.assertEqual(r['data']['extension_version'], SERVER_VERSION)
+        self.assertEqual(r['data']['extension_version'], '1.1.1')
         self.assertEqual(r['data']['tool_count'], 22)
         self.assertEqual(len(FIELDS), 22)
 

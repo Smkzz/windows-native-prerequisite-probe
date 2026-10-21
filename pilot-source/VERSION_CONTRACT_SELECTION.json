@@ -1,0 +1,10 @@
+{
+  "schema": "localcontrol-version-contract-selection/v1",
+  "expected_count": 1,
+  "nodes": [
+    "tests/test_next_integration.py::NextIntegrationCase::test_server_identity_and_extension_registry"
+  ],
+  "previous_failed_run": 39564427049,
+  "previous_passed_nodes_repeated": 0,
+  "real_winfs_phase_repeated": false
+}
