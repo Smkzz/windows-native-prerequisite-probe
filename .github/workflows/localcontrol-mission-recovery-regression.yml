@@ -1,0 +1,176 @@
+name: Bounded mission-recovery regressions
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: bounded-localcontrol-mission-recovery-regression
+  cancel-in-progress: false
+jobs:
+  bounded-mission-recovery-regression:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Verify frozen unchanged mission-recovery regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'Smkzz/windows-native-prerequisite-probe'){throw 'REPOSITORY_MISMATCH'}
+          if($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:RUNNER_OS -cne 'Windows'){throw 'MANUAL_WINDOWS_ONLY'}
+          if($env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$'){throw 'COMMIT_ID_INVALID'}
+          $root='C:\LocalControlRegressionMcp-'+[Guid]::NewGuid().ToString('N')
+          if(Test-Path -LiteralPath $root){throw 'NEW_ROOT_REQUIRED'}
+          $null=New-Item -ItemType Directory -Path $root
+          $failed=$true
+          function Plain-Path([string]$path) {
+            $cursor=Get-Item -LiteralPath $path -Force
+            while($null -ne $cursor) {
+              if(($cursor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'REPARSE_PATH_REFUSED'}
+              if($cursor -is [IO.FileInfo]){$cursor=$cursor.Directory}else{$cursor=$cursor.Parent}
+            }
+          }
+          function Run-Captured([string]$exe,[string[]]$arguments,[int]$seconds,[string]$label) {
+            $psi=[Diagnostics.ProcessStartInfo]::new()
+            $psi.FileName=$exe
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            $psi.WorkingDirectory=$root
+            $psi.Environment.Clear()
+            foreach($name in @('SYSTEMROOT','WINDIR','SYSTEMDRIVE','LOCALAPPDATA','PATH','USERPROFILE')) {
+              $value=[Environment]::GetEnvironmentVariable($name)
+              if($null -ne $value){$psi.Environment[$name]=$value}
+            }
+            $psi.Environment['TEMP']=Join-Path $root 'temp'
+            $psi.Environment['TMP']=Join-Path $root 'temp'
+            $psi.Environment['PYTEST_DISABLE_PLUGIN_AUTOLOAD']='1'
+            $psi.Environment['PYTHONDONTWRITEBYTECODE']='1'
+            foreach($arg in $arguments){$psi.ArgumentList.Add($arg)}
+            $process=[Diagnostics.Process]::new()
+            $process.StartInfo=$psi
+            try {
+              if(-not $process.Start()){throw 'OWNED_PROCESS_START_FAILED'}
+              $stdout=$process.StandardOutput.ReadToEndAsync()
+              $stderr=$process.StandardError.ReadToEndAsync()
+              if(-not $process.WaitForExit($seconds*1000)){
+                $process.Kill($true);$process.WaitForExit()
+                throw ('OWNED_PROCESS_TIMEOUT_'+$label)
+              }
+              $out=$stdout.GetAwaiter().GetResult()
+              $err=$stderr.GetAwaiter().GetResult()
+              if($out.Length -gt 2000000 -or $err.Length -gt 1000000){throw 'CAPTURE_BOUND_EXCEEDED'}
+              [IO.File]::WriteAllText((Join-Path $root ($label+'.stdout.log')),$out)
+              [IO.File]::WriteAllText((Join-Path $root ($label+'.stderr.log')),$err)
+              if($process.ExitCode -ne 0){
+                if($label -eq 'COORDINATOR' -and $out.Length -le 100000){Write-Host $out}
+                [ordered]@{setup_stage=$label;exit_code=$process.ExitCode;stdout_characters=$out.Length;stderr_characters=$err.Length}|ConvertTo-Json -Compress|Write-Host
+                throw ('OWNED_PROCESS_FAILED_'+$label)
+              }
+              return $out
+            } finally {
+              if($null -ne $process -and -not $process.HasExited){$process.Kill($true);$process.WaitForExit()}
+              $process.Dispose()
+            }
+          }
+          try {
+            $base='https://raw.githubusercontent.com/Smkzz/windows-native-prerequisite-probe/'+$env:GITHUB_SHA+'/'
+            $manifestPath=Join-Path $root 'SOURCE_MANIFEST.json'
+            Invoke-WebRequest -Uri ($base+'pilot-source/MISSION_RECOVERY_SOURCE_MANIFEST.json') -OutFile $manifestPath
+            $manifestHash='bd0c6b3c4428d3c8c1dc5bca4dd021971d2429a6fe3fbe62393d6d9ffd8d597c'
+            if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $manifestHash){throw 'MANIFEST_HASH_MISMATCH'}
+            $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+            if($manifest.candidate_commit -cne 'e071dd2d099577e3ded081f1ffefd7c2bf22e3a8' -or
+               $manifest.candidate_tree -cne '2afd017548b4ace8e2a7c67adebb6a5a9baeaf10' -or
+               $manifest.files.Count -ne 89 -or $manifest.selected_nodes -ne 45){throw 'SOURCE_MANIFEST_DRIFT'}
+            $sourceRoot=Join-Path $root 'source'
+            $null=New-Item -ItemType Directory -Path $sourceRoot
+            $null=New-Item -ItemType Directory -Path (Join-Path $root 'temp')
+            $null=New-Item -ItemType Directory -Path (Join-Path $root 'runtime')
+            $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach($file in $manifest.files) {
+              if($file.path -notmatch '^pilot-source/((localcontrol|tests)/([a-zA-Z0-9_]+/)*[a-zA-Z0-9_]+\.py|(ownership_pilot|mission_recovery_driver)\.py|MISSION_RECOVERY_SELECTION\.json|WHEELS\.json|requirements\.lock)$'){throw 'SOURCE_ALLOWLIST_PATH_REFUSED'}
+              if(-not $seen.Add([string]$file.path)){throw 'DUPLICATE_SOURCE_PATH'}
+              $target=[IO.Path]::GetFullPath((Join-Path $sourceRoot $file.path.Substring('pilot-source/'.Length)))
+              if(-not $target.StartsWith($sourceRoot+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'SOURCE_ESCAPE_REFUSED'}
+              $null=[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))
+              Invoke-WebRequest -Uri ($base+$file.path) -OutFile $target
+              if((Get-Item -LiteralPath $target).Length -ne $file.bytes -or
+                 (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256){throw 'SOURCE_BYTES_MISMATCH'}
+              Plain-Path $target
+            }
+            if(-not $env:RUNNER_TOOL_CACHE){throw 'INSTALLED_TOOL_CACHE_REQUIRED'}
+            $cache=[IO.Path]::GetFullPath($env:RUNNER_TOOL_CACHE)
+            $python=Join-Path $cache 'Python\3.12.10\x64\python.exe'
+            $complete=Join-Path $cache 'Python\3.12.10\x64.complete'
+            foreach($path in @($python,$complete)) {
+              if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw 'PINNED_INSTALLED_TOOL_REQUIRED'}
+              Plain-Path $path
+            }
+            $pythonHash=(Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($pythonHash -cne '4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a'){throw 'PINNED_TOOL_HASH_DRIFT'}
+            $wheels=Get-Content -LiteralPath (Join-Path $sourceRoot 'WHEELS.json') -Raw | ConvertFrom-Json
+            if($wheels.wheel_count -ne 35 -or $wheels.total_bytes -ne 15688761){throw 'WHEEL_SET_DRIFT'}
+            $wheelRoot=Join-Path $root 'wheels'
+            $null=New-Item -ItemType Directory -Path $wheelRoot
+            $wheelSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            [long]$wheelBytes=0
+            foreach($wheel in $wheels.files) {
+              if($wheel.filename -notmatch '^[A-Za-z0-9_.+-]+\.whl$' -or -not $wheelSeen.Add([string]$wheel.filename)){throw 'WHEEL_FILENAME_REFUSED'}
+              $uri=[Uri]$wheel.url
+              if($uri.Scheme -cne 'https' -or $uri.Host -cne 'files.pythonhosted.org' -or $uri.UserInfo -or $uri.Query -or $uri.Fragment -or
+                 $wheel.sha256 -notmatch '^[a-f0-9]{64}$' -or $wheel.bytes -lt 1 -or $wheel.bytes -gt 20000000){throw 'WHEEL_ORIGIN_OR_BOUND_REFUSED'}
+              $target=Join-Path $wheelRoot $wheel.filename
+              Invoke-WebRequest -Uri $uri -MaximumRedirection 0 -OutFile $target
+              if((Get-Item -LiteralPath $target).Length -ne $wheel.bytes -or
+                 (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $wheel.sha256){throw 'WHEEL_HASH_MISMATCH'}
+              $wheelBytes+=$wheel.bytes
+            }
+            if($wheelSeen.Count -ne 35 -or $wheelBytes -ne 15688761){throw 'WHEEL_COUNT_OR_BYTES_MISMATCH'}
+            $venv=Join-Path $root 'venv'
+            $null=Run-Captured $python @('-I','-B','-m','venv',$venv) 30 'VENV'
+            $venvPython=Join-Path $venv 'Scripts\python.exe'
+            Plain-Path $venvPython
+            $null=Run-Captured $venvPython @('-I','-B','-m','pip','--isolated','install','--no-index','--no-deps','--only-binary=:all:','--require-hashes','--no-cache-dir','--find-links',$wheelRoot,'-r',(Join-Path $sourceRoot 'requirements.lock')) 45 'OFFLINE_INSTALL'
+            $null=Run-Captured $venvPython @('-I','-B','-m','pip','--isolated','check','--disable-pip-version-check') 15 'DEPENDENCY_CHECK'
+            [ordered]@{workflow_commit=$env:GITHUB_SHA;candidate_commit=$manifest.candidate_commit;
+              candidate_tree=$manifest.candidate_tree;source_manifest_sha256=$manifestHash;
+              python_sha256=$pythonHash;image_version=$env:ImageVersion;
+              offline_dependency_check='PASS';real_winfs_repeated=$false;selected_regression_tests=45;
+              full_release_qualification=$false;production_activation_authorized=$false}|ConvertTo-Json -Compress
+            $out=Run-Captured $python @('-I','-B','-S','-X','utf8',(Join-Path $sourceRoot 'mission_recovery_driver.py'),$root) 135 'COORDINATOR'
+            if($out.Length -gt 100000){throw 'COORDINATOR_OUTPUT_BOUND_EXCEEDED'}
+            $out
+            $last=($out.Trim() -split [Environment]::NewLine)[-1] | ConvertFrom-Json
+            if($last.result -cne 'PASS_MISSION_RECOVERY_REGRESSION_ONLY' -or
+               $last.selected_regression_tests -ne 45 -or $last.selected_modules -ne 3 -or
+               $last.phase_passes.regression -ne $true -or $last.unmodified_candidate_test_sources -ne $true -or
+               $last.provider_activated -ne $false){throw 'BOUNDED_MISSION_RECOVERY_FAILED'}
+            $failed=$false
+          } finally {
+            $resolved=[IO.Path]::GetFullPath($root)
+            if($resolved -notmatch '^C:\\LocalControlRegressionMcp-[a-f0-9]{32}$'){throw 'CLEANUP_SCOPE_REFUSED'}
+            $pending=[Collections.Generic.Queue[string]]::new()
+            $item=Get-Item -LiteralPath $resolved -Force
+            if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'CLEANUP_ROOT_REPARSE_REFUSED'}
+            $pending.Enqueue($resolved)
+            $entries=0;$directories=0;$reparse=0;$complete=$true
+            $clock=[Diagnostics.Stopwatch]::StartNew()
+            while($pending.Count -gt 0 -and $complete) {
+              $directory=$pending.Dequeue();$directories++
+              if($directories -gt 4096 -or $clock.Elapsed.TotalSeconds -gt 10){$complete=$false;break}
+              foreach($item in Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop) {
+                $entries++
+                if($entries -gt 16384 -or $clock.Elapsed.TotalSeconds -gt 10){$complete=$false;break}
+                $path=[IO.Path]::GetFullPath($item.FullName)
+                if(-not $path.StartsWith($resolved+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'CLEANUP_INVENTORY_ESCAPE_REFUSED'}
+                if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){$reparse++;continue}
+                if($item.PSIsContainer){$pending.Enqueue($path)}
+              }
+            }
+            [ordered]@{cleanup_inventory_complete=$complete;entries_examined=$entries;directories_examined=$directories;
+              reparse_count=$reparse;link_targets_followed=$false;link_deletion_authorized=$false}|ConvertTo-Json -Compress
+            if(-not $complete -or $reparse -ne 0){throw 'CLEANUP_INCOMPLETE_OR_REPARSE_REFUSED'}
+            [IO.Directory]::Delete($resolved,$true)
+            Write-Output '{"runner_fixture_cleanup":"PASS"}'
+          }
+          if($failed){exit 1}
