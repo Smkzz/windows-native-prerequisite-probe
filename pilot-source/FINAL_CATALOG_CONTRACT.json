@@ -1,0 +1,2269 @@
+{
+  "schema": "localcontrol-frozen-catalog-contract/v1",
+  "candidate_commit": "e071dd2d099577e3ded081f1ffefd7c2bf22e3a8",
+  "candidate_tree": "2afd017548b4ace8e2a7c67adebb6a5a9baeaf10",
+  "enabled_families": [
+    "v060",
+    "v080",
+    "v100",
+    "v110"
+  ],
+  "experimental_v120_enabled": false,
+  "tool_count": 66,
+  "tools": [
+    {
+      "name": "agent_cancel",
+      "description": "Cancel an agent: interrupts the active provider turn, tears down its owned process tree and revokes its delegation token.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_capabilities",
+      "description": "Report delegation providers, permission profiles, limits, recovery semantics and protocol details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_cleanup",
+      "description": "Archive terminal agent records; confirm=delete_artifacts also removes managed worktrees and delegated homes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "all_terminal": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_events",
+      "description": "Read the tamper-evident lifecycle event log for an agent, paged by cursor.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_fork",
+      "description": "Fork an agent's provider thread into a new agent sharing history; optionally start it on a new task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_list",
+      "description": "List agents for this project scope (or all project scopes when project is omitted).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "include_archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_result",
+      "description": "Read an agent's final result, files changed and token usage; wait_ms long-polls until the turn resolves.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "wait_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_resume",
+      "description": "Recover an interrupted or failed agent: respawns the provider session and reattaches its durable thread, optionally starting a new turn.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "output_schema": {
+            "type": "object"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_send",
+      "description": "Steer a running agent's active turn, or start a new turn on an idle/completed agent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "output_schema": {
+            "type": "object"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "input",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_spawn",
+      "description": "Create and start a delegated provider sub-agent bound to this project. Authority (workspace, sandbox profile, budgets, lineage) is bound server-side; dedupe_key returns the same agent for safe retries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "effort": {
+            "type": "string"
+          },
+          "workspace_mode": {
+            "type": "string"
+          },
+          "workspace_path": {
+            "type": "string"
+          },
+          "base_ref": {
+            "type": "string"
+          },
+          "dedupe_key": {
+            "type": "string"
+          },
+          "output_schema": {
+            "type": "object"
+          },
+          "timeout_s": {
+            "type": "integer"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "agent_status",
+      "description": "Read an agent's durable state; wait_ms long-polls until a result-bearing state. include may add events, result, provider detail.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "wait_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "archive_terminal_jobs",
+      "description": "Archive only older terminal job receipts for this project scope into durable LocalControl history. Active jobs and recent terminal receipts are retained; safe to repeat.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "capabilities",
+      "description": "Report registered, enabled and client-observed capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "client_observed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "collection_inventory",
+      "description": "List bounded metadata for direct children of one authorized collection; never reads arbitrary file contents.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "efficiency_metrics",
+      "description": "Report LocalControl broker/read call and byte counters; never invents model tokens.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "exec",
+      "description": "Start one owned job. In the project_sandbox class (exec_mode=appcontainer) arbitrary absolute-path argv - including the governed PowerShell executable - runs autonomously inside the enrolled workspace with no per-command approval; never elevated. This ownership candidate supports Windows AppContainer execution only; recipes and trusted_local configurations are rejected at startup. Waits for short jobs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "argv": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recipe": {
+            "type": "string"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "timeout_ms": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "file_delete",
+      "description": "Delete one regular file inside a writable project. Requires its observed SHA-256 and a unique request ID. Never deletes directories.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "expected_sha256": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "expected_sha256",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_list",
+      "description": "List safe direct children. No credential/control directories or reparse targets.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_patch",
+      "description": "Exact occurrence-checked patch with optimistic concurrency. dry_run returns without mutation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "old": {
+            "type": "string"
+          },
+          "new": {
+            "type": "string"
+          },
+          "expected_count": {
+            "type": "integer"
+          },
+          "expected_sha256": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "old",
+          "new",
+          "expected_sha256",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_read",
+      "description": "Read bounded UTF-8 lines and a SHA-256 for future edits.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "length": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_search",
+      "description": "Bounded literal text search, skipping protected and linked files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "max_files": {
+            "type": "integer"
+          },
+          "max_matches": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_write",
+      "description": "Create or replace one file atomically. Requires an observed SHA-256 or absent, and a unique request ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "expected_sha256": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content",
+          "expected_sha256",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "health_status",
+      "description": "Read current LocalControl health plus durable trusted supervisor telemetry.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "since_ns": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "job_delta",
+      "description": "Read only newly captured output from one owned job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer"
+          },
+          "wait_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "job_input",
+      "description": "Queue bounded stdin to an owned interactive job. Delivery to application is not acknowledged.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "eof": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "job_read",
+      "description": "Read an owned job result, optionally long-polling for completion. view=summary skips captured output and returns structured state only (use job_delta for output).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "wait_ms": {
+            "type": "integer"
+          },
+          "view": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "job_stop",
+      "description": "Stop only a job created by this server and scope. Never accepts a PID or process name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "localcontrol_context",
+      "description": "Zero-knowledge bootstrap. Call this first: returns authorized projects/scopes, tool groups, features, workflows and health. No arguments needed; project is never guessed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "maintenance_begin",
+      "description": "Acquire an expiring LocalControl-only mutation lease across authorized scopes. Refuses active owned jobs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "scopes",
+          "purpose",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "maintenance_end",
+      "description": "Release a matching maintenance lease; replay-safe.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_id",
+          "scope",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_begin",
+      "description": "Create a durable mission bound to the workspace identity, an immutable authority snapshot and explicit resource budgets. Completion is never granted by the caller; only the independent verifier may mark it SUCCEEDED.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "watch_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "success_contract": {
+            "type": "object"
+          },
+          "budgets": {
+            "type": "object"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trust_origin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "objective",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_cancel",
+      "description": "Cancel an owned mission (or abandon it with takeover when the lease is stale).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "abandon": {
+            "type": "boolean"
+          },
+          "takeover": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_checkpoint",
+      "description": "Advance mission notes/evidence and lease with an owned token and optional expected revision guard.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expected_revision": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "object"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "state": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_id",
+          "token",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_finish",
+      "description": "Request completion. Moves the mission to VERIFYING; the deterministic verifier evaluates the success contract and only it can commit SUCCEEDED.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_id",
+          "token",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_resume",
+      "description": "Resume an interrupted or waiting mission after re-classifying workspace identity. Non-same divergence must be explicitly accepted.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "accept_divergence": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_schedule",
+      "description": "Create, list, inspect or cancel durable schedules for queued, delayed, recurring, dependency-bound and retried missions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "schedule_id": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "watch_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "success_contract": {
+            "type": "object"
+          },
+          "budgets": {
+            "type": "object"
+          },
+          "delay_s": {
+            "type": "integer"
+          },
+          "run_at_ns": {
+            "type": "integer"
+          },
+          "recur_s": {
+            "type": "integer"
+          },
+          "depends_on": {
+            "type": "string"
+          },
+          "max_attempts": {
+            "type": "integer"
+          },
+          "backoff_base_s": {
+            "type": "integer"
+          },
+          "backoff_max_s": {
+            "type": "integer"
+          },
+          "deadline_s": {
+            "type": "integer"
+          },
+          "grace_s": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "mission_status",
+      "description": "Read mission state, evidence, verification and schedules. Omit mission_id to list missions and schedules.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "process_list",
+      "description": "List this scope's job receipts, not the host process table.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_discovery_candidates",
+      "description": "Read bounded sanitized candidates from the operator-owned metadata-only discovery report.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_move_apply",
+      "description": "Apply one exact signed same-volume move under its lease. Warning codes must be acknowledged exactly.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "acknowledged_warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "lease_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_move_plan",
+      "description": "Build an expiring signed same-volume directory-move plan after bounded dependency and reparse risk scanning.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "source_scope": {
+            "type": "string"
+          },
+          "source_relative": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "destination_relative": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_scope",
+          "collection",
+          "destination_relative",
+          "lease_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_move_reconcile",
+      "description": "Reconcile an interrupted move from durable journal plus Windows filesystem identity; never blindly retries rename.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "lease_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_move_rollback",
+      "description": "Rollback only when destination identity and full tree fingerprint prove it is the original source.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "lease_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "project_move_status",
+      "description": "Read durable state for one move plan without mutating it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "read_batch",
+      "description": "Read up to 32 bounded text ranges or SHA-256 observations (stat=true) with change-aware response suppression.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "requests": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "run_begin",
+      "description": "Create or explicitly resume a supervised run bound to the workspace identity. Resume classifies divergence and requires accept_divergence when it is not 'same'.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "continuation_id": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "watch_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accept_divergence": {
+            "type": "string"
+          },
+          "takeover": {
+            "type": "boolean"
+          },
+          "token": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "run_finish",
+      "description": "Explicitly finish an owned run. Completion is never inferred; interrupted runs must be resumed before finishing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "token",
+          "state",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "run_heartbeat",
+      "description": "Renew the run lease with an owned token and optionally merge bounded progress notes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "object"
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "token",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "run_status",
+      "description": "Read bounded supervised-run state, tamper-evident history and optional telemetry for the run.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "state_backup",
+      "description": "Create, list, verify or inspect verified backups of authoritative LocalControl state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "backup_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "state_restore",
+      "description": "Stage a verified restore of authoritative state. The staged restore is applied idempotently at the next LocalControl start, before any store opens.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "backup_id": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "system_info",
+      "description": "Inspect enabled capabilities and safety mode. Omit project for the global catalog.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_begin",
+      "description": "Create an exact-path task ownership ledger entry.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "task",
+          "paths"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_checkpoint",
+      "description": "Advance durable task notes with an expected revision guard. Notes accept objective, phase, decisions, completed, blocked_checks, blockers, next_action, vcs, inferences, untested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "expected_revision": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "task",
+          "expected_revision",
+          "notes"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_cleanup_apply",
+      "description": "Apply the guarded task-owned cleanup plan under the verified lease. Never deletes directories.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "lease_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_cleanup_plan",
+      "description": "Plan cleanup of task-owned files under a verified maintenance lease.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "lease_id": {
+            "type": "string"
+          },
+          "max_files": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task",
+          "lease_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_create_file",
+      "description": "Create one task-authorized file through the original guarded file_write broker.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "op",
+          "path",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "task_handoff",
+      "description": "Return bounded durable task state for safe continuation. include=[\"environment\"] adds observed jobs, leases, unresolved moves/transactions and usage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "after_sequence": {
+            "type": "integer"
+          },
+          "snapshot_max_sequence": {
+            "type": "integer"
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "telemetry_summary",
+      "description": "Read durable per-operation telemetry (summary, delta since a sequence, or bounded records). Totals survive restarts; unknown model-token fields stay null.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "view": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "since_ns": {
+            "type": "integer"
+          },
+          "after_sequence": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "max_response_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "transaction_apply",
+      "description": "Apply one signed transaction plan. All operations commit or the applied prefix is compensated; partial application is never reported as success.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "mission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "transaction_plan",
+      "description": "Preflight and journal a bounded multi-file transaction (create/replace/patch/delete) with exact SHA guards; returns a signed plan token.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "ttl_s": {
+            "type": "integer"
+          },
+          "mission_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "transaction_reconcile",
+      "description": "Resolve an interrupted or indeterminate transaction from the durable journal and observed file state. strategy=rollback (default) compensates; strategy=forward completes remaining operations under their exact guards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "strategy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "transaction_rollback",
+      "description": "Reverse an applied transaction only when current file state still matches the applied result.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "transaction_status",
+      "description": "Read durable transaction state, observed file states and recovery hint.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "usage_summary",
+      "description": "Read durable normalized token usage imported only by trusted local adapters, grouped by task/model/stage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "workspace_catalog",
+      "description": "Show the signed operator-authorized workspace and maintenance-collection catalog.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "provenance": "Frozen before CI from exact reviewed candidate make_tools metadata; this is a static contract, not runtime evidence"
+}
