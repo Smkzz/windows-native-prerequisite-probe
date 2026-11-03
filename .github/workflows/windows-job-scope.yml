@@ -63,6 +63,8 @@ jobs:
               const int ERROR_INSUFFICIENT_BUFFER = 122;
               const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
               const int JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1;
+              const int JOB_OBJECT_BASIC_PROCESS_ID_LIST = 3;
+              const int PROCESS_ID_LIST_CAPACITY = 4;
               const long MAX_COORDINATOR_MS = 180000;
               const long MAX_CHILD_MS = 20000;
               const long MAX_WAIT_MS = 5000;
@@ -125,6 +127,8 @@ jobs:
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool QueryInformationJobObject(IntPtr job, int infoClass, ref BasicAccounting info, uint length, out uint returned);
               [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool QueryInformationJobObject(IntPtr job, int infoClass, IntPtr info, uint length, out uint returned);
+              [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool GetHandleInformation(IntPtr handle, out uint flags);
@@ -139,8 +143,6 @@ jobs:
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern uint ResumeThread(IntPtr thread);
               [DllImport("kernel32.dll", SetLastError=true)]
-              static extern bool TerminateJobObject(IntPtr job, uint exitCode);
-              [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool TerminateProcess(IntPtr process, uint exitCode);
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
@@ -153,9 +155,9 @@ jobs:
               static readonly Dictionary<string, object> Receipt = new Dictionary<string, object>();
               static IntPtr Job = IntPtr.Zero;
               static ProcessInfo Child;
-              static bool Assigned, TerminateJobAttempted, TerminateProcessAttempted, CloseUncertain;
+              static bool Assigned, TerminateProcessAttempted, CloseUncertain;
               static bool ProcessCloseAttempted, ThreadCloseAttempted, JobCloseAttempted;
-              static bool FirstZeroProof, FinalZeroProof, CleanupProven;
+              static bool FirstZeroActiveProof, FinalZeroActiveProof, CleanupProven;
 
               static void Need(bool ok, string code)
               {
@@ -179,6 +181,42 @@ jobs:
                   if (remaining <= 0) throw new ProbeFault("COORDINATOR_DEADLINE");
                   return WaitForSingleObject(handle, (uint)Math.Min((long)requested, remaining));
               }
+              static Dictionary<string, object> ProcessIdListSample()
+              {
+                  int headerBytes = 8;
+                  int bytes = headerBytes + IntPtr.Size * PROCESS_ID_LIST_CAPACITY;
+                  IntPtr buffer = Marshal.AllocHGlobal(bytes);
+                  try
+                  {
+                      for (int i = 0; i < bytes; i++) Marshal.WriteByte(buffer, i, 0);
+                      uint returned = 0;
+                      bool ok = QueryInformationJobObject(Job, JOB_OBJECT_BASIC_PROCESS_ID_LIST,
+                          buffer, (uint)bytes, out returned);
+                      if (!ok) throw new ProbeFault("PROCESS_ID_LIST_QUERY_UNAVAILABLE", Marshal.GetLastWin32Error());
+                      if (returned < headerBytes || returned > bytes)
+                          throw new ProbeFault("PROCESS_ID_LIST_RETURN_LENGTH_INVALID");
+                      uint assigned = unchecked((uint)Marshal.ReadInt32(buffer, 0));
+                      uint count = unchecked((uint)Marshal.ReadInt32(buffer, 4));
+                      if (count > PROCESS_ID_LIST_CAPACITY || count > assigned ||
+                          returned < headerBytes + (int)count * IntPtr.Size)
+                          throw new ProbeFault("PROCESS_ID_LIST_INCONSISTENT");
+                      List<ulong> pids = new List<ulong>();
+                      for (int i = 0; i < (int)count; i++)
+                      {
+                          IntPtr slot = new IntPtr(buffer.ToInt64() + headerBytes + (long)i * IntPtr.Size);
+                          ulong pid = IntPtr.Size == 8
+                              ? unchecked((ulong)Marshal.ReadInt64(slot))
+                              : unchecked((uint)Marshal.ReadInt32(slot));
+                          pids.Add(pid);
+                      }
+                      return new Dictionary<string, object> {
+                          {"assigned_processes", assigned}, {"process_ids_returned", count},
+                          {"process_id_list_capacity", PROCESS_ID_LIST_CAPACITY},
+                          {"process_id_list_complete", count == assigned}, {"process_ids", pids}
+                      };
+                  }
+                  finally { Marshal.FreeHGlobal(buffer); }
+              }
               static Dictionary<string, object> AccountingSample()
               {
                   BasicAccounting sample = new BasicAccounting();
@@ -187,20 +225,53 @@ jobs:
                       ref sample, (uint)Marshal.SizeOf(typeof(BasicAccounting)), out returned);
                   if (!ok) throw new ProbeFault("ACCOUNTING_QUERY_UNAVAILABLE", Marshal.GetLastWin32Error());
                   if (returned != (uint)Marshal.SizeOf(typeof(BasicAccounting))) throw new ProbeFault("ACCOUNTING_SIZE_MISMATCH");
+                  Dictionary<string, object> pids = ProcessIdListSample();
                   return new Dictionary<string, object> {
                       {"accounting_available", true}, {"accounting_bytes", returned},
                       {"total_processes", sample.TotalProcesses}, {"active_processes", sample.ActiveProcesses},
-                      {"terminated_processes", sample.TerminatedProcesses}
+                      {"terminated_processes", sample.TerminatedProcesses}, {"process_id_list", pids}, {"accounting_and_pid_list_atomic", false}
                   };
               }
-              static bool IsExactZero(Dictionary<string, object> sample, uint expectedTotal, uint expectedTerminated)
+              static Dictionary<string, object> AccountingStages = new Dictionary<string, object>();
+              static Dictionary<string, object> CaptureAccountingStage(string name)
               {
-                  return (bool)sample["accounting_available"] &&
-                      (uint)sample["active_processes"] == 0 &&
-                      (uint)sample["total_processes"] == expectedTotal &&
-                      (uint)sample["terminated_processes"] == expectedTerminated;
+                  Dictionary<string, object> sample = AccountingSample();
+                  sample["elapsed_ms"] = Clock.ElapsedMilliseconds;
+                  AccountingStages[name] = sample;
+                  Receipt["accounting_stages"] = AccountingStages;
+                  return sample;
               }
-              static Dictionary<string, object> ProveZero(uint expectedTotal, uint expectedTerminated, uint budgetMs)
+              static bool AccountingSampleMatches(Dictionary<string, object> sample, uint total, uint active, bool expectChild)
+              {
+                  if (sample == null || !(bool)sample["accounting_available"]) return false;
+                  Dictionary<string, object> pidList = (Dictionary<string, object>)sample["process_id_list"];
+                  List<ulong> pids = (List<ulong>)pidList["process_ids"];
+                  bool expectedPidSet = expectChild
+                      ? pids.Count == 1 && pids[0] == Child.ProcessId
+                      : pids.Count == 0;
+                  return (uint)sample["total_processes"] == total &&
+                      (uint)sample["active_processes"] == active &&
+                      (uint)sample["terminated_processes"] == 0 &&
+                      (bool)pidList["process_id_list_complete"] &&
+                      (uint)pidList["assigned_processes"] == (uint)pids.Count && expectedPidSet;
+              }
+              static bool StageMatches(string name, uint total, uint active, bool expectChild)
+              {
+                  object value;
+                  if (!AccountingStages.TryGetValue(name, out value)) return false;
+                  return AccountingSampleMatches((Dictionary<string, object>)value, total, active, expectChild);
+              }
+              static bool AccountingStagesMatchExpected()
+              {
+                  return StageMatches("empty_job", 0, 0, false) &&
+                      StageMatches("child_created_suspended_before_assignment", 0, 0, false) &&
+                      StageMatches("after_assignment_before_resume", 1, 1, true) &&
+                      StageMatches("after_resume", 1, 1, true) &&
+                      StageMatches("after_child_termination", 1, 0, false) &&
+                      Receipt.ContainsKey("zero_active_processes_immediately_before_job_close") &&
+                      AccountingSampleMatches((Dictionary<string, object>)Receipt["zero_active_processes_immediately_before_job_close"], 1, 0, false);
+              }
+              static Dictionary<string, object> ProveNoActiveMembers(uint budgetMs)
               {
                   Stopwatch local = Stopwatch.StartNew();
                   Dictionary<string, object> last = null;
@@ -209,13 +280,13 @@ jobs:
                       try
                       {
                           last = AccountingSample();
-                          if (IsExactZero(last, expectedTotal, expectedTerminated)) return last;
+                          if ((uint)last["active_processes"] == 0 && (bool)((Dictionary<string, object>)last["process_id_list"])["process_id_list_complete"] && (uint)((Dictionary<string, object>)last["process_id_list"])["assigned_processes"] == 0) return last;
                       }
                       catch (ProbeFault) { }
                       Thread.Sleep(25);
                   }
                   Receipt["last_accounting_sample"] = last;
-                  throw new ProbeFault("EXACT_ZERO_ACCOUNTING_NOT_PROVEN");
+                  throw new ProbeFault("ZERO_ACTIVE_MEMBERS_NOT_PROVEN");
               }
               static void VerifyNonInheritable(IntPtr handle, string code)
               {
@@ -283,14 +354,17 @@ jobs:
                       Receipt["child_pid"] = Child.ProcessId;
                       VerifyNonInheritable(Child.Process, "CHILD_PROCESS_HANDLE");
                       VerifyNonInheritable(Child.Thread, "CHILD_THREAD_HANDLE");
+                          CaptureAccountingStage("child_created_suspended_before_assignment");
                       Need(AssignProcessToJobObject(Job, Child.Process), "CHILD_ASSIGNMENT_FAILED");
                       Assigned = true;
                       bool inside = false;
                       Need(IsProcessInJob(Child.Process, Job, out inside) && inside, "CHILD_JOB_MEMBERSHIP_FAILED");
                       Receipt["child_assignment_before_resume"] = true;
+                      CaptureAccountingStage("after_assignment_before_resume");
                       uint priorSuspendCount = ResumeThread(Child.Thread);
                       Need(priorSuspendCount == 1, "CHILD_RESUME_STATE_UNEXPECTED");
                       Receipt["child_resumed_after_assignment"] = true;
+                      CaptureAccountingStage("after_resume");
                       Need(WaitBounded(Child.Process, 250) == WAIT_TIMEOUT, "CHILD_NOT_ALIVE_FOR_PROBE");
                   }
                   finally { Marshal.FreeHGlobal(environment); }
@@ -319,7 +393,7 @@ jobs:
                   }
                   handle = IntPtr.Zero;
               }
-              static void CloseAfterZeroProof(uint expectedTotal, uint expectedTerminated)
+              static void CloseAfterZeroProof()
               {
                   if (CloseUncertain) return;
                   if (Child.Process != IntPtr.Zero)
@@ -328,17 +402,17 @@ jobs:
                       uint code = 0;
                       Need(GetExitCodeProcess(Child.Process, out code), "PROCESS_EXIT_CODE_UNAVAILABLE");
                       Receipt["child_exit_code"] = code;
-                      Need(code == PROBE_EXIT, "OWNED_JOB_TERMINATION_NOT_OBSERVED");
+                      Need(code == PROBE_EXIT, "OWNED_CHILD_EXIT_CODE_UNEXPECTED");
                   }
                   if (Child.Thread != IntPtr.Zero) Need(Signaled(Child.Thread), "THREAD_EXIT_NOT_PROVEN");
-                  Dictionary<string, object> before = ProveZero(expectedTotal, expectedTerminated, 2000);
-                  FirstZeroProof = true;
-                  Receipt["zero_accounting_before_any_close"] = before;
+                  Dictionary<string, object> before = ProveNoActiveMembers(2000);
+                  FirstZeroActiveProof = true;
+                  Receipt["zero_active_processes_before_any_close"] = before;
                   CloseChecked(ref Child.Process, "process");
                   CloseChecked(ref Child.Thread, "thread");
-                  Dictionary<string, object> beforeJobClose = ProveZero(expectedTotal, expectedTerminated, 1000);
-                  FinalZeroProof = true;
-                  Receipt["zero_accounting_immediately_before_job_close"] = beforeJobClose;
+                  Dictionary<string, object> beforeJobClose = ProveNoActiveMembers(1000);
+                  FinalZeroActiveProof = true;
+                  Receipt["zero_active_processes_immediately_before_job_close"] = beforeJobClose;
                   CloseChecked(ref Job, "job");
                   CleanupProven = true;
                   Receipt["cleanup_status"] = "OWNED_JOB_CHILD_PROVEN";
@@ -354,36 +428,35 @@ jobs:
                   try
                   {
                       bool processKnown = Child.Process != IntPtr.Zero;
-                      if (processKnown && !Signaled(Child.Process))
+                      bool childSignaled = processKnown && Signaled(Child.Process);
+                      Dictionary<string, object> initialPidList = ProcessIdListSample();
+                      Receipt["emergency_initial_job_process_id_list"] = initialPidList;
+                      List<ulong> initialPids = (List<ulong>)initialPidList["process_ids"];
+                      bool listComplete = (bool)initialPidList["process_id_list_complete"] &&
+                          (uint)initialPidList["assigned_processes"] == (uint)initialPids.Count;
+                      bool onlyOwnedChild = processKnown && initialPids.Count == 1 && initialPids[0] == Child.ProcessId;
+                      bool emptyJob = initialPids.Count == 0;
+                      if (!listComplete || (!onlyOwnedChild && !emptyJob))
+                          throw new ProbeFault("EMERGENCY_JOB_MEMBER_IDENTITY_UNKNOWN");
+                      if (processKnown && !childSignaled)
                       {
-                          if (Assigned && !TerminateJobAttempted)
-                          {
-                              TerminateJobAttempted = true;
-                              bool stopped = TerminateJobObject(Job, PROBE_EXIT);
-                              Receipt["emergency_terminate_job_succeeded"] = stopped;
-                          }
-                          uint wait = WaitBounded(Child.Process, (uint)MAX_WAIT_MS);
-                          if (wait == WAIT_TIMEOUT && !TerminateProcessAttempted)
-                          {
-                              TerminateProcessAttempted = true;
-                              bool stopped = TerminateProcess(Child.Process, PROBE_EXIT);
-                              Receipt["emergency_terminate_owned_process_succeeded"] = stopped;
-                              wait = WaitBounded(Child.Process, (uint)MAX_WAIT_MS);
-                          }
-                          Need(wait == WAIT_OBJECT_0, "EMERGENCY_PROCESS_EXIT_UNKNOWN");
+                          Need(!TerminateProcessAttempted, "EMERGENCY_PROCESS_TERMINATION_ALREADY_ATTEMPTED");
+                          TerminateProcessAttempted = true;
+                          bool stopped = TerminateProcess(Child.Process, PROBE_EXIT);
+                          Receipt["emergency_terminate_owned_process_succeeded"] = stopped;
+                          Need(stopped, "EMERGENCY_OWNED_PROCESS_TERMINATION_FAILED");
+                          Need(WaitBounded(Child.Process, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "EMERGENCY_PROCESS_EXIT_UNKNOWN");
                       }
                       if (Child.Thread != IntPtr.Zero)
                           Need(WaitBounded(Child.Thread, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "EMERGENCY_THREAD_EXIT_UNKNOWN");
-                      uint total = Assigned ? 1u : 0u;
-                      uint terminated = Assigned && processKnown ? 1u : 0u;
-                      Dictionary<string, object> sample = ProveZero(total, terminated, 2000);
-                      Receipt["emergency_zero_accounting_before_close"] = sample;
-                      FirstZeroProof = true;
+                      Dictionary<string, object> sample = ProveNoActiveMembers(2000);
+                      Receipt["emergency_zero_active_processes_before_close"] = sample;
+                      FirstZeroActiveProof = true;
                       CloseChecked(ref Child.Process, "process");
                       CloseChecked(ref Child.Thread, "thread");
-                      Dictionary<string, object> last = ProveZero(total, terminated, 1000);
-                      FinalZeroProof = true;
-                      Receipt["emergency_zero_accounting_immediately_before_job_close"] = last;
+                      Dictionary<string, object> last = ProveNoActiveMembers(1000);
+                      FinalZeroActiveProof = true;
+                      Receipt["emergency_zero_active_processes_immediately_before_job_close"] = last;
                       CloseChecked(ref Job, "job");
                       CleanupProven = true;
                       Receipt["cleanup_status"] = "OWNED_JOB_CHILD_CLEANED_AFTER_SCOPE_FAILURE";
@@ -415,6 +488,8 @@ jobs:
                   Receipt["runner_os_version"] = Environment.OSVersion.Version.ToString();
                   Receipt["coordinator_x64"] = Environment.Is64BitProcess;
                   Receipt["scope"] = "GENERIC_WINDOWS_JOB_CHILD_PRIMITIVE_ONLY";
+                  Receipt["job_wide_termination_tested"] = false;
+                  Receipt["owned_child_termination_method"] = "TerminateProcess_retained_process_handle_once";
                   Receipt["localcontrol_source_present"] = false;
                   Receipt["candidate_tests_executed"] = false;
                   Receipt["free_entitlement_verified"] = false;
@@ -435,13 +510,28 @@ jobs:
                       Need(Environment.Is64BitProcess, "X64_COORDINATOR_REQUIRED");
                       ConfigureJob();
                       Receipt["job_nonce"] = Guid.NewGuid().ToString("N");
+                      CaptureAccountingStage("empty_job");
                       LaunchChild();
-                      TerminateJobAttempted = true;
-                      Need(TerminateJobObject(Job, PROBE_EXIT), "OWNED_JOB_TERMINATION_FAILED");
+                      Dictionary<string, object> beforeTerminationPids = ProcessIdListSample();
+                      Receipt["pre_termination_job_process_id_list"] = beforeTerminationPids;
+                      List<ulong> beforeTerminationIds = (List<ulong>)beforeTerminationPids["process_ids"];
+                      Need((bool)beforeTerminationPids["process_id_list_complete"] &&
+                          (uint)beforeTerminationPids["assigned_processes"] == (uint)beforeTerminationIds.Count &&
+                          beforeTerminationIds.Count == 1 && beforeTerminationIds[0] == Child.ProcessId,
+                          "PRE_TERMINATION_MEMBER_IDENTITY_UNKNOWN");
+                      Need(!TerminateProcessAttempted, "OWNED_PROCESS_TERMINATION_ALREADY_ATTEMPTED");
+                      TerminateProcessAttempted = true;
+                      bool stopped = TerminateProcess(Child.Process, PROBE_EXIT);
+                      Receipt["terminate_owned_process_succeeded"] = stopped;
+                      Need(stopped, "OWNED_PROCESS_TERMINATION_FAILED");
                       Need(WaitBounded(Child.Process, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "CHILD_EXIT_TIMEOUT");
                       Need(WaitBounded(Child.Thread, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "CHILD_THREAD_EXIT_TIMEOUT");
-                      CloseAfterZeroProof(1, 1);
-                      failure = CleanupProven && FirstZeroProof && FinalZeroProof && !CloseUncertain ? null : "SCOPE_PROOF_INCOMPLETE";
+                      CaptureAccountingStage("after_child_termination");
+                      CloseAfterZeroProof();
+                      bool accountingExpected = AccountingStagesMatchExpected();
+                      Receipt["expected_lifetime_accounting_observed"] = accountingExpected;
+                      failure = CleanupProven && FirstZeroActiveProof && FinalZeroActiveProof && !CloseUncertain && accountingExpected
+                          ? null : (CleanupProven && !accountingExpected ? "UNEXPECTED_JOB_LIFETIME_ACCOUNTING" : "SCOPE_PROOF_INCOMPLETE");
                   }
                   catch (ProbeFault fault)
                   {
@@ -451,13 +541,16 @@ jobs:
                   }
                   catch { failure = "UNEXPECTED_NATIVE_SCOPE_FAILURE"; Receipt["failure_code"] = failure; }
                   if (!CleanupProven) EmergencyCleanup();
+                  bool accountingExpectedAtEnd = AccountingStagesMatchExpected();
+                  Receipt["expected_lifetime_accounting_observed"] = accountingExpectedAtEnd;
+                  if (!accountingExpectedAtEnd && failure == null) failure = "UNEXPECTED_JOB_LIFETIME_ACCOUNTING";
                   if (Clock.ElapsedMilliseconds >= MAX_COORDINATOR_MS && failure == null) failure = "COORDINATOR_DEADLINE";
                   Receipt["elapsed_ms"] = Clock.ElapsedMilliseconds;
-                  Receipt["preclose_zero_proven"] = FirstZeroProof;
-                  Receipt["final_preclose_zero_proven"] = FinalZeroProof;
+                  Receipt["preclose_zero_active_processes_proven"] = FirstZeroActiveProof;
+                  Receipt["final_preclose_zero_active_processes_proven"] = FinalZeroActiveProof;
                   Receipt["close_uncertain"] = CloseUncertain;
                   Receipt["owned_job_child_cleanup_proven"] = CleanupProven;
-                  Receipt["status"] = failure == null && CleanupProven && FirstZeroProof && FinalZeroProof && !CloseUncertain
+                  Receipt["status"] = failure == null && CleanupProven && FirstZeroActiveProof && FinalZeroActiveProof && !CloseUncertain
                       ? "PASS_OWNED_CHILD_JOB_SCOPE_ONLY" : (CleanupProven ? "FAIL_OWNED_CHILD_JOB_SCOPE_ONLY" : "FAIL_CLEANUP_UNKNOWN");
                   if (failure != null && !Receipt.ContainsKey("failure_code")) Receipt["failure_code"] = failure;
                   return Receipt;
@@ -489,6 +582,8 @@ jobs:
               runner_arch = $env:RUNNER_ARCH
               runner_image = $env:ImageVersion
               scope = 'GENERIC_WINDOWS_JOB_CHILD_PRIMITIVE_ONLY'
+              job_wide_termination_tested = $false
+              owned_child_termination_method = 'TerminateProcess_retained_process_handle_once'
               localcontrol_source_present = $false
               candidate_tests_executed = $false
               free_entitlement_verified = $false
