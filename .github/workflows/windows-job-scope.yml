@@ -1,12 +1,15 @@
-name: Generic Windows Job scope probe
+name: LocalControl generic Windows Job Pythonw v10 one-shot
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/localcontrol-winjob-pythonw-v10-20261103
 permissions: {}
 concurrency:
-  group: generic-windows-job-scope-probe
+  group: generic-windows-job-pythonw-v10-one-shot
   cancel-in-progress: false
 jobs:
   scope-probe:
+    if: ${{ github.event_name == 'push' && github.repository == 'Smkzz/windows-native-prerequisite-probe' && github.actor == 'Smkzz' && github.ref == 'refs/heads/codex/localcontrol-winjob-pythonw-v10-20261103' && github.event.head_commit.message == 'Run isolated pinned Pythonw Job v10 once' }}
     runs-on: windows-2025
     timeout-minutes: 5
     steps:
@@ -48,7 +51,7 @@ jobs:
           public static class GenericWindowsJobScopeProbe
           {
               const uint CREATE_SUSPENDED = 0x00000004;
-              const uint CREATE_NO_WINDOW = 0x08000000;
+              const uint DETACHED_PROCESS = 0x00000008;
               const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
               const uint STARTF_USESHOWWINDOW = 0x00000001;
               const uint JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
@@ -411,10 +414,13 @@ jobs:
               {
                   string system = Environment.GetEnvironmentVariable("SystemRoot");
                   Need(!String.IsNullOrEmpty(system), "SYSTEMROOT_UNAVAILABLE");
-                  string executable = Path.Combine(system, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+                  string cache = Environment.GetEnvironmentVariable("RUNNER_TOOL_CACHE");
+                  if (String.IsNullOrWhiteSpace(cache) ||
+                      !String.Equals(Path.GetFullPath(cache).TrimEnd('\\'), @"C:\hostedtoolcache\windows", StringComparison.OrdinalIgnoreCase))
+                      throw new ProbeFault("HOSTED_TOOLCACHE_IDENTITY_INVALID");
+                  string executable = Path.Combine(cache, "Python", "3.12.10", "x64", "pythonw.exe");
                   Need(File.Exists(executable), "FIXED_CHILD_EXECUTABLE_UNAVAILABLE");
-                  string childCommand = Quote(executable) + " -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -Command " +
-                      Quote("[System.Threading.Thread]::Sleep(20000)");
+                  string childCommand = Quote(executable) + " -I -S -B -c " + Quote("import time;time.sleep(20)");
                   string drive = Path.GetPathRoot(system).TrimEnd('\\');
                   string[] entries = new string[] {
                       "PATH=" + Path.Combine(system, "System32"), "SYSTEMDRIVE=" + drive,
@@ -435,11 +441,13 @@ jobs:
                       startup.ShowWindow = 0;
                       bool created = CreateProcessW(executable, new StringBuilder(childCommand),
                           ref processAttributes, ref threadAttributes, false,
-                          CREATE_SUSPENDED | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+                          CREATE_SUSPENDED | DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT,
                           environment, Path.Combine(system, "System32"), ref startup, out Child);
                       if (!created) throw new ProbeFault("CHILD_CREATE_FAILED", Marshal.GetLastWin32Error());
                       Receipt["child_created_suspended"] = true;
                       Receipt["child_no_window"] = true;
+                      Receipt["child_console_creation_mode"] = "DETACHED_PROCESS";
+                      Receipt["child_fixture_kind"] = "SIGNED_HOSTED_PYTHONW_3_12_10";
                       Receipt["child_executable_sha256"] = Sha256(executable);
                       Receipt["child_pid"] = Child.ProcessId;
                       VerifyNonInheritable(Child.Process, "CHILD_PROCESS_HANDLE");
@@ -668,9 +676,19 @@ jobs:
           $nativeInvocationAttempted = $false
           $nativeReceipt = $null
           try {
-            if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:GITHUB_REPOSITORY -cne $expectedRepository -or $env:GITHUB_REF -cne 'refs/heads/main') { throw 'SCOPE_IDENTITY_REFUSED' }
+            if ($env:GITHUB_EVENT_NAME -cne 'push' -or $env:GITHUB_REPOSITORY -cne $expectedRepository -or $env:GITHUB_REF -cne 'refs/heads/codex/localcontrol-winjob-pythonw-v10-20261103') { throw 'SCOPE_IDENTITY_REFUSED' }
             if ($env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$' -or $env:GITHUB_RUN_ID -notmatch '^[0-9]+$' -or $env:GITHUB_RUN_ATTEMPT -cne '1') { throw 'RUN_IDENTITY_INVALID' }
             if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKFLOW_REF) -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ARCH -cne 'X64' -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) { throw 'RUNNER_IDENTITY_INCOMPLETE' }
+            $stage = 'hosted-pythonw-identity'
+            $expectedToolCache = 'C:\hostedtoolcache\windows'
+            if ([string]::IsNullOrEmpty($env:RUNNER_TOOL_CACHE) -or
+                ([IO.Path]::GetFullPath($env:RUNNER_TOOL_CACHE).TrimEnd([char]92) -ine $expectedToolCache)) { throw 'TOOLCACHE_ROOT_REFUSED' }
+            $pythonw = Join-Path $expectedToolCache 'Python\3.12.10\x64\pythonw.exe'
+            if (-not [IO.File]::Exists($pythonw)) { throw 'PINNED_PYTHONW_NOT_FOUND' }
+            $sig = Get-AuthenticodeSignature -LiteralPath $pythonw -ErrorAction Stop
+            if ($sig.Status -cne 'Valid' -or $null -eq $sig.SignerCertificate -or
+                ([string]$sig.SignerCertificate.Subject) -notmatch '(^|, )O=Python Software Foundation(,|$)') { throw 'PYTHONW_SIGNER_REFUSED' }
+            $pythonwSha = (Get-FileHash -LiteralPath $pythonw -Algorithm SHA256).Hash.ToLowerInvariant()
             $stage = 'compile'
             Add-Type -TypeDefinition $probe -Language CSharp -ErrorAction Stop
             $stage = 'native-run'
@@ -678,6 +696,9 @@ jobs:
             $receipt = [GenericWindowsJobScopeProbe]::Run($identity.repository, $identity.workflow_ref, $identity.workflow_sha,
               $identity.run_id, $identity.run_attempt, $identity.runner_os, $identity.runner_arch, $identity.runner_image)
             $nativeReceipt = $receipt
+            $receipt['hosted_pythonw_signer_preflight'] = 'VALID_PSF'
+            $receipt['hosted_pythonw_preflight_sha256'] = $pythonwSha
+            if ($receipt['child_executable_sha256'] -cne $pythonwSha) { throw 'PYTHONW_IMAGE_DIGEST_CHANGED' }
             $stage = 'receipt'
             $json = $receipt | ConvertTo-Json -Compress -Depth 8
             if ($json.Length -gt 100000) { throw 'RECEIPT_OUTPUT_LIMIT' }
