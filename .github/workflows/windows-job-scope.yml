@@ -1,0 +1,504 @@
+name: Generic Windows Job scope probe
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: generic-windows-job-scope-probe
+  cancel-in-progress: false
+jobs:
+  scope-probe:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Run source-free native Job scope probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expectedRepository = 'Smkzz/windows-native-prerequisite-probe'
+          $identity = [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            workflow_ref = $env:GITHUB_WORKFLOW_REF
+            workflow_sha = $env:GITHUB_SHA
+            run_id = $env:GITHUB_RUN_ID
+            run_attempt = $env:GITHUB_RUN_ATTEMPT
+            runner_os = $env:RUNNER_OS
+            runner_arch = $env:RUNNER_ARCH
+            runner_image = $env:ImageVersion
+            scope = 'GENERIC_WINDOWS_JOB_CHILD_PRIMITIVE_ONLY'
+            localcontrol_source_present = $false
+            candidate_tests_executed = $false
+            free_entitlement_verified = $false
+            historical_job_cleanup = 'UNKNOWN'
+            workflow_coordinator_in_owned_job = $false
+            add_type_compiler_in_owned_job = $false
+            runner_wrapper_in_owned_job = $false
+            whole_run_cleanup_proven = $false
+          }
+          $probe = @'
+          using System;
+          using System.Collections.Generic;
+          using System.ComponentModel;
+          using System.Diagnostics;
+          using System.IO;
+          using System.Runtime.InteropServices;
+          using System.Security.Cryptography;
+          using System.Text;
+          using System.Threading;
+
+          public static class GenericWindowsJobScopeProbe
+          {
+              const uint CREATE_SUSPENDED = 0x00000004;
+              const uint CREATE_NO_WINDOW = 0x08000000;
+              const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+              const uint STARTF_USESHOWWINDOW = 0x00000001;
+              const uint JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008;
+              const uint JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100;
+              const uint JOB_OBJECT_LIMIT_JOB_MEMORY = 0x00000200;
+              const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+              const uint HANDLE_FLAG_INHERIT = 0x00000001;
+              const uint WAIT_OBJECT_0 = 0;
+              const uint WAIT_TIMEOUT = 0x00000102;
+              const uint INFINITE = 0xffffffff;
+              const uint PROBE_EXIT = 0x0000c0de;
+              const int ERROR_INSUFFICIENT_BUFFER = 122;
+              const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
+              const int JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1;
+              const long MAX_COORDINATOR_MS = 180000;
+              const long MAX_CHILD_MS = 20000;
+              const long MAX_WAIT_MS = 5000;
+              const uint MEMORY_LIMIT = 268435456;
+
+              [StructLayout(LayoutKind.Sequential)]
+              struct SecurityAttributes
+              {
+                  public int Length;
+                  public IntPtr SecurityDescriptor;
+                  [MarshalAs(UnmanagedType.Bool)] public bool InheritHandle;
+              }
+              [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+              struct StartupInfo
+              {
+                  public int Cb;
+                  public IntPtr Reserved, Desktop, Title;
+                  public uint X, Y, XSize, YSize, XChars, YChars, FillAttribute, Flags;
+                  public ushort ShowWindow, Reserved2Count;
+                  public IntPtr Reserved2, StdInput, StdOutput, StdError;
+              }
+              [StructLayout(LayoutKind.Sequential)]
+              struct ProcessInfo { public IntPtr Process, Thread; public uint ProcessId, ThreadId; }
+              [StructLayout(LayoutKind.Sequential)]
+              struct BasicLimit
+              {
+                  public long PerProcessUserTime, PerJobUserTime;
+                  public uint LimitFlags;
+                  public UIntPtr MinimumWorkingSet, MaximumWorkingSet;
+                  public uint ActiveProcessLimit;
+                  public UIntPtr Affinity;
+                  public uint PriorityClass, SchedulingClass;
+              }
+              [StructLayout(LayoutKind.Sequential)]
+              struct IoCounters { public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; }
+              [StructLayout(LayoutKind.Sequential)]
+              struct ExtendedLimit
+              {
+                  public BasicLimit Basic;
+                  public IoCounters Io;
+                  public UIntPtr ProcessMemoryLimit, JobMemoryLimit, PeakProcessMemory, PeakJobMemory;
+              }
+              [StructLayout(LayoutKind.Sequential)]
+              struct BasicAccounting
+              {
+                  public long TotalUserTime, TotalKernelTime, PeriodUserTime, PeriodKernelTime;
+                  public uint PageFaults, TotalProcesses, ActiveProcesses, TerminatedProcesses;
+              }
+              sealed class ProbeFault : Exception
+              {
+                  public readonly string Code;
+                  public readonly int Win32;
+                  public ProbeFault(string code, int win32 = 0) : base(code) { Code = code; Win32 = win32; }
+              }
+
+              [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+              static extern IntPtr CreateJobObjectW(ref SecurityAttributes attributes, string name);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool SetInformationJobObject(IntPtr job, int infoClass, ref ExtendedLimit info, uint length);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool QueryInformationJobObject(IntPtr job, int infoClass, ref BasicAccounting info, uint length, out uint returned);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool GetHandleInformation(IntPtr handle, out uint flags);
+              [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+              static extern bool CreateProcessW(string application, StringBuilder command, ref SecurityAttributes processAttributes,
+                  ref SecurityAttributes threadAttributes, bool inheritHandles, uint creationFlags, IntPtr environment,
+                  string currentDirectory, ref StartupInfo startup, out ProcessInfo processInfo);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool IsProcessInJob(IntPtr process, IntPtr job, out bool result);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern uint ResumeThread(IntPtr thread);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool TerminateJobObject(IntPtr job, uint exitCode);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool TerminateProcess(IntPtr process, uint exitCode);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool CloseHandle(IntPtr handle);
+
+              static readonly Stopwatch Clock = Stopwatch.StartNew();
+              static readonly Dictionary<string, object> Receipt = new Dictionary<string, object>();
+              static IntPtr Job = IntPtr.Zero;
+              static ProcessInfo Child;
+              static bool Assigned, TerminateJobAttempted, TerminateProcessAttempted, CloseUncertain;
+              static bool ProcessCloseAttempted, ThreadCloseAttempted, JobCloseAttempted;
+              static bool FirstZeroProof, FinalZeroProof, CleanupProven;
+
+              static void Need(bool ok, string code)
+              {
+                  if (!ok) throw new ProbeFault(code, Marshal.GetLastWin32Error());
+              }
+              static string Sha256(string path)
+              {
+                  using (SHA256 sha = SHA256.Create())
+                  using (FileStream stream = File.OpenRead(path))
+                  {
+                      byte[] hash = sha.ComputeHash(stream);
+                      StringBuilder text = new StringBuilder(hash.Length * 2);
+                      foreach (byte b in hash) text.Append(b.ToString("x2"));
+                      return text.ToString();
+                  }
+              }
+              static string Quote(string value) { return "\"" + value.Replace("\"", "\\\"") + "\""; }
+              static uint WaitBounded(IntPtr handle, uint requested)
+              {
+                  long remaining = MAX_COORDINATOR_MS - Clock.ElapsedMilliseconds;
+                  if (remaining <= 0) throw new ProbeFault("COORDINATOR_DEADLINE");
+                  return WaitForSingleObject(handle, (uint)Math.Min((long)requested, remaining));
+              }
+              static Dictionary<string, object> AccountingSample()
+              {
+                  BasicAccounting sample = new BasicAccounting();
+                  uint returned = 0;
+                  bool ok = QueryInformationJobObject(Job, JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION,
+                      ref sample, (uint)Marshal.SizeOf(typeof(BasicAccounting)), out returned);
+                  if (!ok) throw new ProbeFault("ACCOUNTING_QUERY_UNAVAILABLE", Marshal.GetLastWin32Error());
+                  if (returned != (uint)Marshal.SizeOf(typeof(BasicAccounting))) throw new ProbeFault("ACCOUNTING_SIZE_MISMATCH");
+                  return new Dictionary<string, object> {
+                      {"accounting_available", true}, {"accounting_bytes", returned},
+                      {"total_processes", sample.TotalProcesses}, {"active_processes", sample.ActiveProcesses},
+                      {"terminated_processes", sample.TerminatedProcesses}
+                  };
+              }
+              static bool IsExactZero(Dictionary<string, object> sample, uint expectedTotal, uint expectedTerminated)
+              {
+                  return (bool)sample["accounting_available"] &&
+                      (uint)sample["active_processes"] == 0 &&
+                      (uint)sample["total_processes"] == expectedTotal &&
+                      (uint)sample["terminated_processes"] == expectedTerminated;
+              }
+              static Dictionary<string, object> ProveZero(uint expectedTotal, uint expectedTerminated, uint budgetMs)
+              {
+                  Stopwatch local = Stopwatch.StartNew();
+                  Dictionary<string, object> last = null;
+                  while (local.ElapsedMilliseconds <= budgetMs && Clock.ElapsedMilliseconds < MAX_COORDINATOR_MS)
+                  {
+                      try
+                      {
+                          last = AccountingSample();
+                          if (IsExactZero(last, expectedTotal, expectedTerminated)) return last;
+                      }
+                      catch (ProbeFault) { }
+                      Thread.Sleep(25);
+                  }
+                  Receipt["last_accounting_sample"] = last;
+                  throw new ProbeFault("EXACT_ZERO_ACCOUNTING_NOT_PROVEN");
+              }
+              static void VerifyNonInheritable(IntPtr handle, string code)
+              {
+                  uint flags = 0;
+                  Need(handle != IntPtr.Zero && GetHandleInformation(handle, out flags), code + "_QUERY");
+                  Need((flags & HANDLE_FLAG_INHERIT) == 0, code + "_INHERITABLE");
+              }
+              static void ConfigureJob()
+              {
+                  SecurityAttributes attributes = new SecurityAttributes();
+                  attributes.Length = Marshal.SizeOf(typeof(SecurityAttributes));
+                  attributes.InheritHandle = false;
+                  Job = CreateJobObjectW(ref attributes, null);
+                  Need(Job != IntPtr.Zero, "JOB_CREATE_FAILED");
+                  Need(SetHandleInformation(Job, HANDLE_FLAG_INHERIT, 0), "JOB_INHERITANCE_CLEAR_FAILED");
+                  VerifyNonInheritable(Job, "JOB_HANDLE");
+                  ExtendedLimit limits = new ExtendedLimit();
+                  limits.Basic.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
+                      JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_JOB_MEMORY;
+                  limits.Basic.ActiveProcessLimit = 1;
+                  limits.ProcessMemoryLimit = new UIntPtr(MEMORY_LIMIT);
+                  limits.JobMemoryLimit = new UIntPtr(MEMORY_LIMIT);
+                  Need(SetInformationJobObject(Job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                      ref limits, (uint)Marshal.SizeOf(typeof(ExtendedLimit))), "JOB_LIMITS_REFUSED");
+                  Receipt["job_handle_unique_unnamed"] = true;
+                  Receipt["job_handle_inheritable"] = false;
+                  Receipt["job_active_process_limit"] = 1;
+                  Receipt["job_process_memory_limit_bytes"] = MEMORY_LIMIT;
+                  Receipt["job_memory_limit_bytes"] = MEMORY_LIMIT;
+              }
+              static void LaunchChild()
+              {
+                  string system = Environment.GetEnvironmentVariable("SystemRoot");
+                  Need(!String.IsNullOrEmpty(system), "SYSTEMROOT_UNAVAILABLE");
+                  string executable = Path.Combine(system, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+                  Need(File.Exists(executable), "FIXED_CHILD_EXECUTABLE_UNAVAILABLE");
+                  string childCommand = Quote(executable) + " -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -Command " +
+                      Quote("[System.Threading.Thread]::Sleep(20000)");
+                  string drive = Path.GetPathRoot(system).TrimEnd('\\');
+                  string[] entries = new string[] {
+                      "PATH=" + Path.Combine(system, "System32"), "SYSTEMDRIVE=" + drive,
+                      "SYSTEMROOT=" + system, "TEMP=" + Path.Combine(system, "Temp"),
+                      "TMP=" + Path.Combine(system, "Temp"), "WINDIR=" + system
+                  };
+                  Array.Sort(entries, StringComparer.OrdinalIgnoreCase);
+                  IntPtr environment = Marshal.StringToHGlobalUni(String.Join("\0", entries) + "\0\0");
+                  try
+                  {
+                      SecurityAttributes processAttributes = new SecurityAttributes();
+                      processAttributes.Length = Marshal.SizeOf(typeof(SecurityAttributes));
+                      processAttributes.InheritHandle = false;
+                      SecurityAttributes threadAttributes = processAttributes;
+                      StartupInfo startup = new StartupInfo();
+                      startup.Cb = Marshal.SizeOf(typeof(StartupInfo));
+                      startup.Flags = STARTF_USESHOWWINDOW;
+                      startup.ShowWindow = 0;
+                      bool created = CreateProcessW(executable, new StringBuilder(childCommand),
+                          ref processAttributes, ref threadAttributes, false,
+                          CREATE_SUSPENDED | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+                          environment, Path.Combine(system, "System32"), ref startup, out Child);
+                      if (!created) throw new ProbeFault("CHILD_CREATE_FAILED", Marshal.GetLastWin32Error());
+                      Receipt["child_created_suspended"] = true;
+                      Receipt["child_no_window"] = true;
+                      Receipt["child_executable_sha256"] = Sha256(executable);
+                      Receipt["child_pid"] = Child.ProcessId;
+                      VerifyNonInheritable(Child.Process, "CHILD_PROCESS_HANDLE");
+                      VerifyNonInheritable(Child.Thread, "CHILD_THREAD_HANDLE");
+                      Need(AssignProcessToJobObject(Job, Child.Process), "CHILD_ASSIGNMENT_FAILED");
+                      Assigned = true;
+                      bool inside = false;
+                      Need(IsProcessInJob(Child.Process, Job, out inside) && inside, "CHILD_JOB_MEMBERSHIP_FAILED");
+                      Receipt["child_assignment_before_resume"] = true;
+                      uint priorSuspendCount = ResumeThread(Child.Thread);
+                      Need(priorSuspendCount == 1, "CHILD_RESUME_STATE_UNEXPECTED");
+                      Receipt["child_resumed_after_assignment"] = true;
+                      Need(WaitBounded(Child.Process, 250) == WAIT_TIMEOUT, "CHILD_NOT_ALIVE_FOR_PROBE");
+                  }
+                  finally { Marshal.FreeHGlobal(environment); }
+              }
+              static bool Signaled(IntPtr handle)
+              {
+                  if (handle == IntPtr.Zero) return false;
+                  uint result = WaitForSingleObject(handle, 0);
+                  if (result == WAIT_OBJECT_0) return true;
+                  if (result == WAIT_TIMEOUT) return false;
+                  throw new ProbeFault("OWNED_HANDLE_WAIT_FAILED", Marshal.GetLastWin32Error());
+              }
+              static void CloseChecked(ref IntPtr handle, string name)
+              {
+                  if (handle == IntPtr.Zero) return;
+                  if (name == "process") { if (ProcessCloseAttempted) throw new ProbeFault("PROCESS_CLOSE_RETRY_REFUSED"); ProcessCloseAttempted = true; }
+                  else if (name == "thread") { if (ThreadCloseAttempted) throw new ProbeFault("THREAD_CLOSE_RETRY_REFUSED"); ThreadCloseAttempted = true; }
+                  else { if (JobCloseAttempted) throw new ProbeFault("JOB_CLOSE_RETRY_REFUSED"); JobCloseAttempted = true; }
+                  bool closed = CloseHandle(handle);
+                  Receipt["close_" + name + "_checked"] = true;
+                  Receipt["close_" + name + "_succeeded"] = closed;
+                  if (!closed)
+                  {
+                      CloseUncertain = true;
+                      throw new ProbeFault("CHECKED_HANDLE_CLOSE_FAILED", Marshal.GetLastWin32Error());
+                  }
+                  handle = IntPtr.Zero;
+              }
+              static void CloseAfterZeroProof(uint expectedTotal, uint expectedTerminated)
+              {
+                  if (CloseUncertain) return;
+                  if (Child.Process != IntPtr.Zero)
+                  {
+                      Need(Signaled(Child.Process), "PROCESS_EXIT_NOT_PROVEN");
+                      uint code = 0;
+                      Need(GetExitCodeProcess(Child.Process, out code), "PROCESS_EXIT_CODE_UNAVAILABLE");
+                      Receipt["child_exit_code"] = code;
+                      Need(code == PROBE_EXIT, "OWNED_JOB_TERMINATION_NOT_OBSERVED");
+                  }
+                  if (Child.Thread != IntPtr.Zero) Need(Signaled(Child.Thread), "THREAD_EXIT_NOT_PROVEN");
+                  Dictionary<string, object> before = ProveZero(expectedTotal, expectedTerminated, 2000);
+                  FirstZeroProof = true;
+                  Receipt["zero_accounting_before_any_close"] = before;
+                  CloseChecked(ref Child.Process, "process");
+                  CloseChecked(ref Child.Thread, "thread");
+                  Dictionary<string, object> beforeJobClose = ProveZero(expectedTotal, expectedTerminated, 1000);
+                  FinalZeroProof = true;
+                  Receipt["zero_accounting_immediately_before_job_close"] = beforeJobClose;
+                  CloseChecked(ref Job, "job");
+                  CleanupProven = true;
+                  Receipt["cleanup_status"] = "OWNED_JOB_CHILD_PROVEN";
+              }
+              static void EmergencyCleanup()
+              {
+                  if (CloseUncertain) { Receipt["cleanup_status"] = "UNKNOWN_CHECKED_CLOSE"; return; }
+                  if (Job == IntPtr.Zero) {
+                      if (Child.Process == IntPtr.Zero && Child.Thread == IntPtr.Zero) { CleanupProven = true; Receipt["cleanup_status"] = "NO_NATIVE_OBJECTS"; }
+                      else Receipt["cleanup_status"] = "UNKNOWN_JOB_HANDLE_MISSING";
+                      return;
+                  }
+                  try
+                  {
+                      bool processKnown = Child.Process != IntPtr.Zero;
+                      if (processKnown && !Signaled(Child.Process))
+                      {
+                          if (Assigned && !TerminateJobAttempted)
+                          {
+                              TerminateJobAttempted = true;
+                              bool stopped = TerminateJobObject(Job, PROBE_EXIT);
+                              Receipt["emergency_terminate_job_succeeded"] = stopped;
+                          }
+                          uint wait = WaitBounded(Child.Process, (uint)MAX_WAIT_MS);
+                          if (wait == WAIT_TIMEOUT && !TerminateProcessAttempted)
+                          {
+                              TerminateProcessAttempted = true;
+                              bool stopped = TerminateProcess(Child.Process, PROBE_EXIT);
+                              Receipt["emergency_terminate_owned_process_succeeded"] = stopped;
+                              wait = WaitBounded(Child.Process, (uint)MAX_WAIT_MS);
+                          }
+                          Need(wait == WAIT_OBJECT_0, "EMERGENCY_PROCESS_EXIT_UNKNOWN");
+                      }
+                      if (Child.Thread != IntPtr.Zero)
+                          Need(WaitBounded(Child.Thread, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "EMERGENCY_THREAD_EXIT_UNKNOWN");
+                      uint total = Assigned ? 1u : 0u;
+                      uint terminated = Assigned && processKnown ? 1u : 0u;
+                      Dictionary<string, object> sample = ProveZero(total, terminated, 2000);
+                      Receipt["emergency_zero_accounting_before_close"] = sample;
+                      FirstZeroProof = true;
+                      CloseChecked(ref Child.Process, "process");
+                      CloseChecked(ref Child.Thread, "thread");
+                      Dictionary<string, object> last = ProveZero(total, terminated, 1000);
+                      FinalZeroProof = true;
+                      Receipt["emergency_zero_accounting_immediately_before_job_close"] = last;
+                      CloseChecked(ref Job, "job");
+                      CleanupProven = true;
+                      Receipt["cleanup_status"] = "OWNED_JOB_CHILD_CLEANED_AFTER_SCOPE_FAILURE";
+                  }
+                  catch (ProbeFault fault)
+                  {
+                      Receipt["cleanup_status"] = "UNKNOWN_RETAINED_HANDLES_UNTIL_RUNNER_DISPOSAL";
+                      Receipt["cleanup_failure_code"] = fault.Code;
+                      if (fault.Win32 != 0) Receipt["cleanup_win32_error"] = fault.Win32;
+                  }
+                  catch
+                  {
+                      Receipt["cleanup_status"] = "UNKNOWN_RETAINED_HANDLES_UNTIL_RUNNER_DISPOSAL";
+                      Receipt["cleanup_failure_code"] = "CLEANUP_UNEXPECTED_FAILURE";
+                  }
+              }
+              public static Dictionary<string, object> Run(string repository, string workflowRef, string workflowSha,
+                  string runId, string attempt, string runnerOs, string runnerArch, string imageVersion)
+              {
+                  Receipt["schema"] = "generic-windows-job-scope-receipt/v1";
+                  Receipt["repository"] = repository;
+                  Receipt["workflow_ref"] = workflowRef;
+                  Receipt["workflow_sha"] = workflowSha;
+                  Receipt["run_id"] = runId;
+                  Receipt["run_attempt"] = attempt;
+                  Receipt["runner_os"] = runnerOs;
+                  Receipt["runner_arch"] = runnerArch;
+                  Receipt["runner_image"] = imageVersion;
+                  Receipt["runner_os_version"] = Environment.OSVersion.Version.ToString();
+                  Receipt["coordinator_x64"] = Environment.Is64BitProcess;
+                  Receipt["scope"] = "GENERIC_WINDOWS_JOB_CHILD_PRIMITIVE_ONLY";
+                  Receipt["localcontrol_source_present"] = false;
+                  Receipt["candidate_tests_executed"] = false;
+                  Receipt["free_entitlement_verified"] = false;
+                  Receipt["historical_job_cleanup"] = "UNKNOWN";
+                  Receipt["workflow_coordinator_in_owned_job"] = false;
+                  Receipt["add_type_compiler_in_owned_job"] = false;
+                  Receipt["runner_wrapper_in_owned_job"] = false;
+                  Receipt["whole_run_cleanup_proven"] = false;
+                  Receipt["child_lifetime_ms"] = MAX_CHILD_MS;
+                  Receipt["coordinator_limit_ms"] = MAX_COORDINATOR_MS;
+                  Receipt["runner_timeout_minutes"] = 5;
+                  Receipt["network_by_probe"] = false;
+                  Receipt["third_party_actions"] = false;
+                  string failure = null;
+                  try
+                  {
+                      Need(Clock.ElapsedMilliseconds < MAX_COORDINATOR_MS, "COORDINATOR_DEADLINE");
+                      Need(Environment.Is64BitProcess, "X64_COORDINATOR_REQUIRED");
+                      ConfigureJob();
+                      Receipt["job_nonce"] = Guid.NewGuid().ToString("N");
+                      LaunchChild();
+                      TerminateJobAttempted = true;
+                      Need(TerminateJobObject(Job, PROBE_EXIT), "OWNED_JOB_TERMINATION_FAILED");
+                      Need(WaitBounded(Child.Process, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "CHILD_EXIT_TIMEOUT");
+                      Need(WaitBounded(Child.Thread, (uint)MAX_WAIT_MS) == WAIT_OBJECT_0, "CHILD_THREAD_EXIT_TIMEOUT");
+                      CloseAfterZeroProof(1, 1);
+                      failure = CleanupProven && FirstZeroProof && FinalZeroProof && !CloseUncertain ? null : "SCOPE_PROOF_INCOMPLETE";
+                  }
+                  catch (ProbeFault fault)
+                  {
+                      failure = fault.Code;
+                      Receipt["failure_code"] = fault.Code;
+                      if (fault.Win32 != 0) Receipt["win32_error"] = fault.Win32;
+                  }
+                  catch { failure = "UNEXPECTED_NATIVE_SCOPE_FAILURE"; Receipt["failure_code"] = failure; }
+                  if (!CleanupProven) EmergencyCleanup();
+                  if (Clock.ElapsedMilliseconds >= MAX_COORDINATOR_MS && failure == null) failure = "COORDINATOR_DEADLINE";
+                  Receipt["elapsed_ms"] = Clock.ElapsedMilliseconds;
+                  Receipt["preclose_zero_proven"] = FirstZeroProof;
+                  Receipt["final_preclose_zero_proven"] = FinalZeroProof;
+                  Receipt["close_uncertain"] = CloseUncertain;
+                  Receipt["owned_job_child_cleanup_proven"] = CleanupProven;
+                  Receipt["status"] = failure == null && CleanupProven && FirstZeroProof && FinalZeroProof && !CloseUncertain
+                      ? "PASS_OWNED_CHILD_JOB_SCOPE_ONLY" : (CleanupProven ? "FAIL_OWNED_CHILD_JOB_SCOPE_ONLY" : "FAIL_CLEANUP_UNKNOWN");
+                  if (failure != null && !Receipt.ContainsKey("failure_code")) Receipt["failure_code"] = failure;
+                  return Receipt;
+              }
+          }
+          '@
+          try {
+            if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:GITHUB_REPOSITORY -cne $expectedRepository -or $env:GITHUB_REF -cne 'refs/heads/main') { throw 'SCOPE_IDENTITY_REFUSED' }
+            if ($env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$' -or $env:GITHUB_RUN_ID -notmatch '^[0-9]+$' -or $env:GITHUB_RUN_ATTEMPT -cne '1') { throw 'RUN_IDENTITY_INVALID' }
+            if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKFLOW_REF) -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ARCH -cne 'X64' -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) { throw 'RUNNER_IDENTITY_INCOMPLETE' }
+            Add-Type -TypeDefinition $probe -Language CSharp -ErrorAction Stop
+            $receipt = [GenericWindowsJobScopeProbe]::Run($identity.repository, $identity.workflow_ref, $identity.workflow_sha,
+              $identity.run_id, $identity.run_attempt, $identity.runner_os, $identity.runner_arch, $identity.runner_image)
+            $json = $receipt | ConvertTo-Json -Compress -Depth 8
+            if ($json.Length -gt 100000) { throw 'RECEIPT_OUTPUT_LIMIT' }
+            Write-Output $json
+            if ($receipt.status -cne 'PASS_OWNED_CHILD_JOB_SCOPE_ONLY') { exit 1 }
+          } catch {
+            $failed = [ordered]@{
+              schema = 'generic-windows-job-scope-receipt/v1'
+              status = 'FAIL_SCOPE_SETUP'
+              failure_code = 'IDENTITY_OR_HARNESS_SETUP_FAILED'
+              repository = $env:GITHUB_REPOSITORY
+              workflow_ref = $env:GITHUB_WORKFLOW_REF
+              workflow_sha = $env:GITHUB_SHA
+              run_id = $env:GITHUB_RUN_ID
+              run_attempt = $env:GITHUB_RUN_ATTEMPT
+              runner_os = $env:RUNNER_OS
+              runner_arch = $env:RUNNER_ARCH
+              runner_image = $env:ImageVersion
+              scope = 'GENERIC_WINDOWS_JOB_CHILD_PRIMITIVE_ONLY'
+              localcontrol_source_present = $false
+              candidate_tests_executed = $false
+              free_entitlement_verified = $false
+              historical_job_cleanup = 'UNKNOWN'
+            workflow_coordinator_in_owned_job = $false
+            add_type_compiler_in_owned_job = $false
+            runner_wrapper_in_owned_job = $false
+            whole_run_cleanup_proven = $false
+            }
+            $json = $failed | ConvertTo-Json -Compress -Depth 4
+            if ($json.Length -le 100000) { Write-Output $json }
+            exit 1
+          }
