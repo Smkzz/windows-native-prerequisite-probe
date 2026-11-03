@@ -60,6 +60,8 @@ jobs:
               const uint WAIT_TIMEOUT = 0x00000102;
               const uint INFINITE = 0xffffffff;
               const uint PROBE_EXIT = 0x0000c0de;
+              const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x00001000;
+              const uint PROCESS_SYNCHRONIZE = 0x00100000;
               const int ERROR_INSUFFICIENT_BUFFER = 122;
               const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
               const int JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1;
@@ -127,6 +129,8 @@ jobs:
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool QueryInformationJobObject(IntPtr job, int infoClass, ref BasicAccounting info, uint length, out uint returned);
               [DllImport("kernel32.dll", SetLastError=true)]
+              static extern bool QueryInformationJobObject(IntPtr job, int infoClass, ref ExtendedLimit info, uint length, out uint returned);
+              [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool QueryInformationJobObject(IntPtr job, int infoClass, IntPtr info, uint length, out uint returned);
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
@@ -140,6 +144,10 @@ jobs:
               static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern bool IsProcessInJob(IntPtr process, IntPtr job, out bool result);
+              [DllImport("kernel32.dll", SetLastError=true)]
+              static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, uint processId);
+              [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+              static extern bool QueryFullProcessImageNameW(IntPtr process, uint flags, StringBuilder image, ref uint chars);
               [DllImport("kernel32.dll", SetLastError=true)]
               static extern uint ResumeThread(IntPtr thread);
               [DllImport("kernel32.dll", SetLastError=true)]
@@ -216,6 +224,73 @@ jobs:
                       };
                   }
                   finally { Marshal.FreeHGlobal(buffer); }
+              }
+              static string MemberImageClass(string raw)
+              {
+                  if (String.IsNullOrEmpty(raw)) return "UNAVAILABLE";
+                  string name = Path.GetFileName(raw).ToLowerInvariant();
+                  if (name == "powershell.exe") return "WINDOWS_POWERSHELL";
+                  if (name == "pwsh.exe") return "POWERSHELL_7";
+                  if (name == "conhost.exe") return "CONSOLE_HOST";
+                  if (name == "cmd.exe") return "COMMAND_INTERPRETER";
+                  if (name == "csc.exe") return "CSHARP_COMPILER";
+                  if (name == "werfault.exe") return "WINDOWS_ERROR_REPORTING";
+                  return "OTHER_NOT_EXPORTED";
+              }
+              static Dictionary<string, object> DescribeMemberReadOnly(ulong pid)
+              {
+                  Dictionary<string, object> record = new Dictionary<string, object> {
+                      {"pid", pid}, {"source", "NONATOMIC_JOB_PID_LIST_ONLY"},
+                      {"query_handle_obtained", false}, {"confirmed_current_job_member", false},
+                      {"process_exit_state", "UNKNOWN"}, {"image_class", "UNAVAILABLE"},
+                      {"native_kill_authorization", false}
+                  };
+                  if (pid == 0 || pid > uint.MaxValue) {
+                      record["error"] = "INVALID_PID"; return record;
+                  }
+                  IntPtr handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+                      false, (uint)pid);
+                  if (handle == IntPtr.Zero) {
+                      record["error"] = "OPEN_PROCESS_FAILED";
+                      record["open_win32_error"] = Marshal.GetLastWin32Error();
+                      return record;
+                  }
+                  record["query_handle_obtained"] = true;
+                  try
+                  {
+                      bool inside = false;
+                      if (IsProcessInJob(handle, Job, out inside))
+                          record["confirmed_current_job_member"] = inside;
+                      else record["membership_error"] = Marshal.GetLastWin32Error();
+                      uint wait = WaitForSingleObject(handle, 0);
+                      if (wait == WAIT_TIMEOUT) record["process_exit_state"] = "UNSIGNALED_AT_QUERY";
+                      else if (wait == WAIT_OBJECT_0) record["process_exit_state"] = "SIGNALED_AT_QUERY";
+                      else record["wait_error"] = Marshal.GetLastWin32Error();
+                      if (inside) {
+                          StringBuilder image = new StringBuilder(520);
+                          uint capacity = (uint)image.Capacity;
+                          if (QueryFullProcessImageNameW(handle, 0, image, ref capacity))
+                              record["image_class"] = MemberImageClass(image.ToString());
+                          else record["image_query_error"] = Marshal.GetLastWin32Error();
+                      }
+                  }
+                  finally
+                  {
+                      bool closed = CloseHandle(handle);
+                      record["query_handle_close_checked"] = closed;
+                      if (!closed) {
+                          CloseUncertain = true;
+                          record["query_handle_close_win32_error"] = Marshal.GetLastWin32Error();
+                      }
+                  }
+                  return record;
+              }
+              static List<Dictionary<string, object>> DescribeMembersReadOnly(Dictionary<string, object> pidList)
+              {
+                  List<Dictionary<string, object>> results = new List<Dictionary<string, object>>();
+                  List<ulong> pids = (List<ulong>)pidList["process_ids"];
+                  foreach (ulong pid in pids) results.Add(DescribeMemberReadOnly(pid));
+                  return results;
               }
               static Dictionary<string, object> AccountingSample()
               {
@@ -311,6 +386,21 @@ jobs:
                   limits.JobMemoryLimit = new UIntPtr(MEMORY_LIMIT);
                   Need(SetInformationJobObject(Job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
                       ref limits, (uint)Marshal.SizeOf(typeof(ExtendedLimit))), "JOB_LIMITS_REFUSED");
+                  ExtendedLimit effective = new ExtendedLimit();
+                  uint returned = 0;
+                  Need(QueryInformationJobObject(Job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                      ref effective, (uint)Marshal.SizeOf(typeof(ExtendedLimit)), out returned),
+                      "JOB_LIMIT_READBACK_UNAVAILABLE");
+                  uint flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+                      JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_JOB_MEMORY;
+                  Receipt["job_limit_flags_kernel_readback"] = effective.Basic.LimitFlags;
+                  Receipt["job_limit_effective_active_process_limit"] = effective.Basic.ActiveProcessLimit;
+                  if (!(effective.Basic.LimitFlags == flags &&
+                      effective.Basic.ActiveProcessLimit == 1 &&
+                      effective.ProcessMemoryLimit.ToUInt64() == MEMORY_LIMIT &&
+                      effective.JobMemoryLimit.ToUInt64() == MEMORY_LIMIT))
+                      throw new ProbeFault("JOB_LIMIT_READBACK_MISMATCH");
+                  Receipt["job_limit_kernel_readback_verified"] = true;
                   Receipt["job_handle_unique_unnamed"] = true;
                   Receipt["job_handle_inheritable"] = false;
                   Receipt["job_active_process_limit"] = 1;
@@ -412,7 +502,9 @@ jobs:
                   Dictionary<string, object> beforeJobClose = ProveNoActiveMembers(1000);
                   FinalZeroActiveProof = true;
                   Receipt["zero_active_processes_immediately_before_job_close"] = beforeJobClose;
+                  if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                   CloseChecked(ref Job, "job");
+                  if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                   CleanupProven = true;
                   Receipt["cleanup_status"] = "OWNED_JOB_CHILD_PROVEN";
               }
@@ -428,15 +520,22 @@ jobs:
                   {
                       bool processKnown = Child.Process != IntPtr.Zero;
                       bool childSignaled = processKnown && Signaled(Child.Process);
-                      Dictionary<string, object> initialPidList = ProcessIdListSample();
+                      Dictionary<string, object> initialAccounting = AccountingSample();
+                      Receipt["emergency_initial_accounting"] = initialAccounting;
+                      Dictionary<string, object> initialPidList =
+                          (Dictionary<string, object>)initialAccounting["process_id_list"];
                       Receipt["emergency_initial_job_process_id_list"] = initialPidList;
                       List<ulong> initialPids = (List<ulong>)initialPidList["process_ids"];
                       bool listComplete = (bool)initialPidList["process_id_list_complete"] &&
                           (uint)initialPidList["assigned_processes"] == (uint)initialPids.Count;
                       bool onlyOwnedChild = processKnown && initialPids.Count == 1 && initialPids[0] == Child.ProcessId;
                       bool emptyJob = initialPids.Count == 0;
-                      if (!listComplete || (!onlyOwnedChild && !emptyJob))
-                          throw new ProbeFault("EMERGENCY_JOB_MEMBER_IDENTITY_UNKNOWN");
+                      bool cleanupMembersKnown = listComplete && (onlyOwnedChild || emptyJob);
+                      Receipt["emergency_member_set_known"] = cleanupMembersKnown;
+                      try { Receipt["emergency_initial_member_diagnostics"] = DescribeMembersReadOnly(initialPidList); }
+                      catch { Receipt["emergency_initial_member_diagnostics"] = "UNAVAILABLE"; }
+                      if (!cleanupMembersKnown) throw new ProbeFault("EMERGENCY_JOB_MEMBER_IDENTITY_UNKNOWN");
+                      if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                       if (processKnown && !childSignaled)
                       {
                           Need(!TerminateProcessAttempted, "EMERGENCY_PROCESS_TERMINATION_ALREADY_ATTEMPTED");
@@ -456,7 +555,9 @@ jobs:
                       Dictionary<string, object> last = ProveNoActiveMembers(1000);
                       FinalZeroActiveProof = true;
                       Receipt["emergency_zero_active_processes_immediately_before_job_close"] = last;
+                      if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                       CloseChecked(ref Job, "job");
+                      if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                       CleanupProven = true;
                       Receipt["cleanup_status"] = "OWNED_JOB_CHILD_CLEANED_AFTER_SCOPE_FAILURE";
                   }
@@ -511,13 +612,20 @@ jobs:
                       Receipt["job_nonce"] = Guid.NewGuid().ToString("N");
                       CaptureAccountingStage("empty_job");
                       LaunchChild();
-                      Dictionary<string, object> beforeTerminationPids = ProcessIdListSample();
+                      Dictionary<string, object> beforeTerminationAccounting = AccountingSample();
+                      Receipt["pre_termination_accounting"] = beforeTerminationAccounting;
+                      Dictionary<string, object> beforeTerminationPids =
+                          (Dictionary<string, object>)beforeTerminationAccounting["process_id_list"];
                       Receipt["pre_termination_job_process_id_list"] = beforeTerminationPids;
                       List<ulong> beforeTerminationIds = (List<ulong>)beforeTerminationPids["process_ids"];
-                      Need((bool)beforeTerminationPids["process_id_list_complete"] &&
+                      bool expectedMemberSet = (bool)beforeTerminationPids["process_id_list_complete"] &&
                           (uint)beforeTerminationPids["assigned_processes"] == (uint)beforeTerminationIds.Count &&
-                          beforeTerminationIds.Count == 1 && beforeTerminationIds[0] == Child.ProcessId,
-                          "PRE_TERMINATION_MEMBER_IDENTITY_UNKNOWN");
+                          beforeTerminationIds.Count == 1 && beforeTerminationIds[0] == Child.ProcessId;
+                      Receipt["pre_termination_member_set_expected"] = expectedMemberSet;
+                      try { Receipt["pre_termination_member_diagnostics"] = DescribeMembersReadOnly(beforeTerminationPids); }
+                      catch { Receipt["pre_termination_member_diagnostics"] = "UNAVAILABLE"; }
+                      if (!expectedMemberSet) throw new ProbeFault("PRE_TERMINATION_MEMBER_IDENTITY_UNKNOWN");
+                      if (CloseUncertain) throw new ProbeFault("OBSERVATION_HANDLE_CLOSE_UNCERTAIN");
                       Need(!TerminateProcessAttempted, "OWNED_PROCESS_TERMINATION_ALREADY_ATTEMPTED");
                       TerminateProcessAttempted = true;
                       bool stopped = TerminateProcess(Child.Process, PROBE_EXIT);
