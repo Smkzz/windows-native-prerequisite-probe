@@ -155,7 +155,7 @@ jobs:
               static readonly Dictionary<string, object> Receipt = new Dictionary<string, object>();
               static IntPtr Job = IntPtr.Zero;
               static ProcessInfo Child;
-              static bool Assigned, TerminateProcessAttempted, CloseUncertain;
+              static bool TerminateProcessAttempted, CloseUncertain;
               static bool ProcessCloseAttempted, ThreadCloseAttempted, JobCloseAttempted;
               static bool FirstZeroActiveProof, FinalZeroActiveProof, CleanupProven;
 
@@ -356,7 +356,6 @@ jobs:
                       VerifyNonInheritable(Child.Thread, "CHILD_THREAD_HANDLE");
                           CaptureAccountingStage("child_created_suspended_before_assignment");
                       Need(AssignProcessToJobObject(Job, Child.Process), "CHILD_ASSIGNMENT_FAILED");
-                      Assigned = true;
                       bool inside = false;
                       Need(IsProcessInJob(Child.Process, Job, out inside) && inside, "CHILD_JOB_MEMBERSHIP_FAILED");
                       Receipt["child_assignment_before_resume"] = true;
@@ -557,22 +556,59 @@ jobs:
               }
           }
           '@
+          $stage = 'identity'
+          $nativeInvocationAttempted = $false
+          $nativeReceipt = $null
           try {
             if ($env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or $env:GITHUB_REPOSITORY -cne $expectedRepository -or $env:GITHUB_REF -cne 'refs/heads/main') { throw 'SCOPE_IDENTITY_REFUSED' }
             if ($env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$' -or $env:GITHUB_RUN_ID -notmatch '^[0-9]+$' -or $env:GITHUB_RUN_ATTEMPT -cne '1') { throw 'RUN_IDENTITY_INVALID' }
             if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKFLOW_REF) -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ARCH -cne 'X64' -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) { throw 'RUNNER_IDENTITY_INCOMPLETE' }
+            $stage = 'compile'
             Add-Type -TypeDefinition $probe -Language CSharp -ErrorAction Stop
+            $stage = 'native-run'
+            $nativeInvocationAttempted = $true
             $receipt = [GenericWindowsJobScopeProbe]::Run($identity.repository, $identity.workflow_ref, $identity.workflow_sha,
               $identity.run_id, $identity.run_attempt, $identity.runner_os, $identity.runner_arch, $identity.runner_image)
+            $nativeReceipt = $receipt
+            $stage = 'receipt'
             $json = $receipt | ConvertTo-Json -Compress -Depth 8
             if ($json.Length -gt 100000) { throw 'RECEIPT_OUTPUT_LIMIT' }
             Write-Output $json
             if ($receipt.status -cne 'PASS_OWNED_CHILD_JOB_SCOPE_ONLY') { exit 1 }
           } catch {
+            # Preserve bounded error provenance without publishing raw exception text,
+            # argv, environment, filesystem paths or potentially sensitive details.
+            $caught = $_
+            $caughtType = [string]$caught.Exception.GetType().Name
+            if ($caughtType -cnotmatch '^[A-Za-z][A-Za-z0-9_]{0,79}$') { $caughtType = 'Exception' }
+            $caughtId = [string]$caught.FullyQualifiedErrorId
+            if ($caughtId.Length -gt 160 -or $caughtId -cnotmatch '^[A-Za-z0-9_.,-]+$') { $caughtId = 'ERROR_ID_REDACTED' }
+            $compilerCode = $null
+            if ($stage -ceq 'compile') {
+              # The diagnostic message is consulted for the allowlisted CS code
+              # only. Neither raw nor transformed free-form text is emitted.
+              $codeMatch = [regex]::Match([string]$caught.Exception.Message, '(?<![A-Za-z0-9])CS[0-9]{4}(?![0-9])')
+              if ($codeMatch.Success) { $compilerCode = $codeMatch.Value }
+            }
+            $nativeStatus = $null
+            $nativeFailureCode = $null
+            if ($nativeReceipt -is [System.Collections.IDictionary]) {
+              $value = [string]$nativeReceipt['status']
+              if ($value -cmatch '^[A-Z0-9_]{1,90}$') { $nativeStatus = $value }
+              $value = [string]$nativeReceipt['failure_code']
+              if ($value -cmatch '^[A-Z0-9_]{1,90}$') { $nativeFailureCode = $value }
+            }
             $failed = [ordered]@{
               schema = 'generic-windows-job-scope-receipt/v1'
               status = 'FAIL_SCOPE_SETUP'
               failure_code = 'IDENTITY_OR_HARNESS_SETUP_FAILED'
+              failure_stage = $stage
+              native_invocation_attempted = $nativeInvocationAttempted
+              caught_exception_type = $caughtType
+              caught_error_id = $caughtId
+              compiler_diagnostic_code = $compilerCode
+              native_receipt_status = $nativeStatus
+              native_receipt_failure_code = $nativeFailureCode
               repository = $env:GITHUB_REPOSITORY
               workflow_ref = $env:GITHUB_WORKFLOW_REF
               workflow_sha = $env:GITHUB_SHA
